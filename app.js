@@ -55,7 +55,7 @@ function applyClientFilters() {
 
   state.reporte = state.rawReporte.filter(row => {
     if (!cajero) return true;
-    return getValue(row, ['Nombre Cajero', 'Cajero', 'Cajero Cobro']) === cajero;
+    return getCajero(row) === cajero;
   });
 
   renderKpis();
@@ -68,14 +68,19 @@ function populateCajeros() {
   const selected = select.value;
   const cajeros = [...new Set(
     state.rawReporte
-      .map(row => getValue(row, ['Nombre Cajero', 'Cajero', 'Cajero Cobro']))
+      .map(row => getCajero(row))
       .filter(Boolean)
   )].sort((a, b) => a.localeCompare(b, 'es'));
 
   select.innerHTML = '<option value="">Todos</option>' +
     cajeros.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
 
-  if (cajeros.includes(selected)) select.value = selected;
+  if (cajeros.includes(selected)) {
+    select.value = selected;
+  }
+
+  const label = document.querySelector('label[for="cajeroSelect"]');
+  if (label) label.textContent = `Cajero (${cajeros.length})`;
 }
 
 function renderKpis() {
@@ -93,7 +98,7 @@ function renderCharts() {
   renderLineChart('chartTendencia', buildTendencia());
   renderBarChart('chartHojas', buildAgrupado(['hoja'], 'Monto recuperado'), false);
   renderBarChart('chartConductores', buildAgrupado(['Conductor', 'Nombre Conductor'], 'Monto por conductor', 10, 18), true);
-  renderBarChart('chartCajeros', buildAgrupado(['Nombre Cajero', 'Cajero', 'Cajero Cobro'], 'Monto cobrado por cajero', 15, 22), true);
+  renderBarChart('chartCajeros', buildAgrupadoCajeros('Monto cobrado por cajero', 20), true);
 }
 
 function buildTendencia() {
@@ -128,6 +133,26 @@ function buildAgrupado(campos, label, limite = 15, maxText = 18) {
 
   return {
     labels: ordenado.map(x => recortarTexto(x.nombre, maxText)),
+    data: ordenado.map(x => x.monto),
+    label
+  };
+}
+
+function buildAgrupadoCajeros(label, limite = 20) {
+  const mapa = new Map();
+
+  state.reporte.forEach(row => {
+    const nombre = getCajero(row) || 'SIN DATO';
+    mapa.set(nombre, (mapa.get(nombre) || 0) + getMonto(row));
+  });
+
+  const ordenado = [...mapa.entries()]
+    .map(([nombre, monto]) => ({ nombre, monto }))
+    .sort((a, b) => b.monto - a.monto)
+    .slice(0, limite);
+
+  return {
+    labels: ordenado.map(x => x.nombre),
     data: ordenado.map(x => x.monto),
     label
   };
@@ -255,6 +280,53 @@ function exportCsv() {
   link.download = `reporte-ava-${new Date().toISOString().slice(0,10)}.csv`;
   link.click();
   URL.revokeObjectURL(url);
+}
+
+
+function normalizeKey(text) {
+  return String(text || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+function findValueByNormalizedKeys(row, possibleKeys) {
+  const normalizedRow = Object.keys(row).reduce((acc, key) => {
+    acc[normalizeKey(key)] = key;
+    return acc;
+  }, {});
+
+  for (const key of possibleKeys) {
+    const realKey = normalizedRow[normalizeKey(key)];
+    if (realKey && row[realKey] !== undefined && row[realKey] !== null && String(row[realKey]).trim() !== '') {
+      return String(row[realKey]).trim();
+    }
+  }
+
+  return '';
+}
+
+function getCajero(row) {
+  const direct = findValueByNormalizedKeys(row, [
+    'Nombre Cajero',
+    'Cajero',
+    'Cajero Cobro',
+    'Nombre del Cajero',
+    'Cajero que cobro',
+    'Cajero que cobró',
+    'Usuario Cobro',
+    'Usuario Cobró'
+  ]);
+
+  if (direct) return direct;
+
+  const cajeroKey = Object.keys(row).find(key => {
+    const clean = normalizeKey(key);
+    return clean.includes('cajero') || clean.includes('usuariocobro');
+  });
+
+  return cajeroKey ? String(row[cajeroKey] || '').trim() : '';
 }
 
 function getValue(row, keys) {
