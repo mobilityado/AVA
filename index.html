@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AVA Dashboard</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-icon">A</div>
+        <div>
+          <h1>AVA</h1>
+          <p>Dashboard de recuperación</p>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a href="#resumen" class="active">Resumen</a>
+        <a href="#tendencia">Tendencia</a>
+        <a href="#conductores">Conductores</a>
+        <a href="#cajeros">Cajeros</a>
+        <a href="#reporte">Reporte</a>
+      </nav>
+
+      <div class="sidebar-note">
+        <strong>Fuente:</strong>
+        <span>Google Sheet vía Apps Script</span>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Control AVA</p>
+          <h2>Reporte Ejecutivo</h2>
+          <span id="lastUpdate">Cargando información...</span>
+        </div>
+        <div class="actions">
+          <button id="btnRefresh" class="btn primary">Actualizar</button>
+          <button id="btnExportCsv" class="btn">Exportar CSV</button>
+        </div>
+      </header>
+
+      <section class="filters card">
+        <div class="field">
+          <label for="hojaSelect">Marca / hoja</label>
+          <select id="hojaSelect">
+            <option value="">Todas</option>
+            <option value="TRT">TRT</option>
+            <option value="SUR">SUR</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="desdeInput">Desde</label>
+          <input type="date" id="desdeInput" />
+        </div>
+        <div class="field">
+          <label for="hastaInput">Hasta</label>
+          <input type="date" id="hastaInput" />
+        </div>
+        <div class="field field-button">
+          <button id="btnApply" class="btn primary full">Aplicar filtros</button>
+        </div>
+      </section>
+
+      <section id="resumen" class="kpi-grid">
+        <article class="kpi card">
+          <span>Total registros</span>
+          <strong id="kpiRegistros">0</strong>
+          <small>Viajes / movimientos</small>
+        </article>
+        <article class="kpi card">
+          <span>Monto recuperado</span>
+          <strong id="kpiMonto">$0.00</strong>
+          <small>Importe total</small>
+        </article>
+        <article class="kpi card">
+          <span>Pasajeros</span>
+          <strong id="kpiPasajeros">0</strong>
+          <small>Total acumulado</small>
+        </article>
+        <article class="kpi card">
+          <span>Promedio</span>
+          <strong id="kpiPromedio">$0.00</strong>
+          <small>Por registro</small>
+        </article>
+      </section>
+
+      <section class="charts-grid">
+        <article id="tendencia" class="card chart-card wide">
+          <div class="card-title">
+            <div>
+              <h3>Tendencia diaria</h3>
+              <p>Monto recuperado por fecha de viaje</p>
+            </div>
+          </div>
+          <canvas id="chartTendencia"></canvas>
+        </article>
+
+        <article class="card chart-card">
+          <div class="card-title">
+            <div>
+              <h3>Resumen por hoja</h3>
+              <p>TRT / SUR</p>
+            </div>
+          </div>
+          <canvas id="chartHojas"></canvas>
+        </article>
+
+        <article id="conductores" class="card chart-card">
+          <div class="card-title">
+            <div>
+              <h3>Top conductores</h3>
+              <p>Por monto recuperado</p>
+            </div>
+          </div>
+          <canvas id="chartConductores"></canvas>
+        </article>
+
+        <article id="cajeros" class="card chart-card">
+          <div class="card-title">
+            <div>
+              <h3>Top cajeros</h3>
+              <p>Por monto recuperado</p>
+            </div>
+          </div>
+          <canvas id="chartCajeros"></canvas>
+        </article>
+      </section>
+
+      <section id="reporte" class="card table-card">
+        <div class="card-title table-title">
+          <div>
+            <h3>Reporte detallado</h3>
+            <p>Consulta directa del periodo seleccionado</p>
+          </div>
+          <input id="searchInput" type="search" placeholder="Buscar en la tabla..." />
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead id="tableHead"></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
