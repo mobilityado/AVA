@@ -48,3 +48,10 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbxpX9FNMZZDL72L76vS4keC
 ## Nota
 
 Si el navegador bloquea la consulta por permisos o CORS, vuelve a revisar que el Apps Script esté publicado como aplicación web con acceso para cualquier usuario.
+
+
+## Actualización
+
+- Se quitó la leyenda visible de fuente Google Script.
+- Se agregó filtro por cajero.
+- Se agregó/actualizó la gráfica de cajeros para ver quién cobró más AVA por monto recuperado.

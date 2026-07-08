@@ -1,10 +1,7 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbxpX9FNMZZDL72L76vS4keCiWC3xPb79_cMkpcBk0_AqktKHizk7j5A6r53brRN9y9d/exec';
 
 const state = {
-  resumen: null,
-  tendencia: [],
-  conductores: [],
-  cajeros: [],
+  rawReporte: [],
   reporte: [],
   charts: {}
 };
@@ -39,23 +36,11 @@ async function loadDashboard() {
   showToast('Consultando información...');
 
   try {
-    const [resumen, tendencia, conductores, cajeros, reporte] = await Promise.all([
-      api('resumen'),
-      api('tendencia'),
-      api('topConductores'),
-      api('topCajeros'),
-      api('reporte')
-    ]);
+    const reporte = await api('reporte');
+    state.rawReporte = reporte.datos || [];
 
-    state.resumen = resumen;
-    state.tendencia = tendencia.tendencia || [];
-    state.conductores = conductores.top || [];
-    state.cajeros = cajeros.top || [];
-    state.reporte = reporte.datos || [];
-
-    renderKpis();
-    renderCharts();
-    renderTable(state.reporte);
+    populateCajeros();
+    applyClientFilters();
 
     $('lastUpdate').textContent = `Última actualización: ${new Date().toLocaleString('es-MX')}`;
     showToast('Dashboard actualizado correctamente');
@@ -65,39 +50,87 @@ async function loadDashboard() {
   }
 }
 
+function applyClientFilters() {
+  const cajero = $('cajeroSelect').value;
+
+  state.reporte = state.rawReporte.filter(row => {
+    if (!cajero) return true;
+    return getValue(row, ['Nombre Cajero', 'Cajero', 'Cajero Cobro']) === cajero;
+  });
+
+  renderKpis();
+  renderCharts();
+  renderTable(state.reporte);
+}
+
+function populateCajeros() {
+  const select = $('cajeroSelect');
+  const selected = select.value;
+  const cajeros = [...new Set(
+    state.rawReporte
+      .map(row => getValue(row, ['Nombre Cajero', 'Cajero', 'Cajero Cobro']))
+      .filter(Boolean)
+  )].sort((a, b) => a.localeCompare(b, 'es'));
+
+  select.innerHTML = '<option value="">Todos</option>' +
+    cajeros.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+
+  if (cajeros.includes(selected)) select.value = selected;
+}
+
 function renderKpis() {
-  const kpis = state.resumen?.kpis || {};
-  $('kpiRegistros').textContent = number(kpis.totalRegistros);
-  $('kpiMonto').textContent = money(kpis.totalMontoRecuperado);
-  $('kpiPasajeros').textContent = number(kpis.totalPasajeros);
-  $('kpiPromedio').textContent = money(kpis.promedioMonto);
+  const rows = state.reporte;
+  const totalMonto = rows.reduce((sum, row) => sum + getMonto(row), 0);
+  const totalPasajeros = rows.reduce((sum, row) => sum + getNumero(row, ['Numero de Pasajeros', 'Número de Pasajeros', 'Pasajeros']), 0);
+
+  $('kpiRegistros').textContent = number(rows.length);
+  $('kpiMonto').textContent = money(totalMonto);
+  $('kpiPasajeros').textContent = number(totalPasajeros);
+  $('kpiPromedio').textContent = money(rows.length ? totalMonto / rows.length : 0);
 }
 
 function renderCharts() {
-  renderLineChart('chartTendencia', {
-    labels: state.tendencia.map(x => x.fecha),
-    data: state.tendencia.map(x => x.monto),
-    label: 'Monto recuperado'
+  renderLineChart('chartTendencia', buildTendencia());
+  renderBarChart('chartHojas', buildAgrupado(['hoja'], 'Monto recuperado'), false);
+  renderBarChart('chartConductores', buildAgrupado(['Conductor', 'Nombre Conductor'], 'Monto por conductor', 10, 18), true);
+  renderBarChart('chartCajeros', buildAgrupado(['Nombre Cajero', 'Cajero', 'Cajero Cobro'], 'Monto cobrado por cajero', 15, 22), true);
+}
+
+function buildTendencia() {
+  const mapa = new Map();
+
+  state.reporte.forEach(row => {
+    const fecha = formatDate(getValue(row, ['Fecha del Viaje', 'Fecha Viaje', 'Fecha']));
+    if (!fecha) return;
+    mapa.set(fecha, (mapa.get(fecha) || 0) + getMonto(row));
   });
 
-  const porHoja = state.resumen?.porHoja || [];
-  renderBarChart('chartHojas', {
-    labels: porHoja.map(x => x.nombre),
-    data: porHoja.map(x => x.monto),
+  const data = [...mapa.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  return {
+    labels: data.map(item => item[0]),
+    data: data.map(item => item[1]),
     label: 'Monto recuperado'
+  };
+}
+
+function buildAgrupado(campos, label, limite = 15, maxText = 18) {
+  const mapa = new Map();
+
+  state.reporte.forEach(row => {
+    const nombre = getValue(row, campos) || 'SIN DATO';
+    mapa.set(nombre, (mapa.get(nombre) || 0) + getMonto(row));
   });
 
-  renderBarChart('chartConductores', {
-    labels: state.conductores.map(x => recortarTexto(x.nombre, 18)),
-    data: state.conductores.map(x => x.monto),
-    label: 'Monto por conductor'
-  }, true);
+  const ordenado = [...mapa.entries()]
+    .map(([nombre, monto]) => ({ nombre, monto }))
+    .sort((a, b) => b.monto - a.monto)
+    .slice(0, limite);
 
-  renderBarChart('chartCajeros', {
-    labels: state.cajeros.map(x => recortarTexto(x.nombre, 18)),
-    data: state.cajeros.map(x => x.monto),
-    label: 'Monto por cajero'
-  }, true);
+  return {
+    labels: ordenado.map(x => recortarTexto(x.nombre, maxText)),
+    data: ordenado.map(x => x.monto),
+    label
+  };
 }
 
 function renderLineChart(canvasId, config) {
@@ -143,8 +176,22 @@ function chartOptions(horizontal = false) {
       }
     },
     scales: {
-      x: { ticks: { autoSkip: true, maxRotation: 0 } },
-      y: { ticks: { callback: (value) => horizontal ? value : money(value) } }
+      x: {
+        ticks: {
+          autoSkip: true,
+          maxRotation: 0,
+          callback: function(value) {
+            return horizontal ? money(value) : this.getLabelForValue(value);
+          }
+        }
+      },
+      y: {
+        ticks: {
+          callback: function(value) {
+            return horizontal ? this.getLabelForValue(value) : money(value);
+          }
+        }
+      }
     }
   };
 }
@@ -165,7 +212,7 @@ function renderTable(rows) {
   }
 
   const headers = Object.keys(rows[0]).filter(h => h !== 'montoRecuperadoNumero');
-  head.innerHTML = `<tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
+  head.innerHTML = `<tr>${headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr>`;
 
   body.innerHTML = rows.map(row => `
     <tr>
@@ -176,7 +223,7 @@ function renderTable(rows) {
 
 function formatCell(header, value) {
   if (header.toLowerCase().includes('monto')) return money(value);
-  return value ?? '';
+  return escapeHtml(value ?? '');
 }
 
 function filterTable() {
@@ -210,9 +257,46 @@ function exportCsv() {
   URL.revokeObjectURL(url);
 }
 
+function getValue(row, keys) {
+  for (const key of keys) {
+    if (row[key] !== undefined && row[key] !== null && String(row[key]).trim() !== '') {
+      return String(row[key]).trim();
+    }
+  }
+  return '';
+}
+
+function getMonto(row) {
+  if (row.montoRecuperadoNumero !== undefined) return Number(row.montoRecuperadoNumero) || 0;
+  const value = getValue(row, ['Monto Recuperado', 'Monto', 'Importe']);
+  return Number(String(value).replace('$', '').replace(/,/g, '').trim()) || 0;
+}
+
+function getNumero(row, keys) {
+  return Number(String(getValue(row, keys)).replace(/,/g, '').trim()) || 0;
+}
+
+function formatDate(value) {
+  const fecha = new Date(value);
+  if (isNaN(fecha)) return null;
+  const yyyy = fecha.getFullYear();
+  const mm = String(fecha.getMonth() + 1).padStart(2, '0');
+  const dd = String(fecha.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 function recortarTexto(text, max) {
   text = String(text || 'SIN DATO');
   return text.length > max ? `${text.slice(0, max)}...` : text;
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
 
 function showToast(message) {
@@ -227,5 +311,6 @@ $('btnApply').addEventListener('click', loadDashboard);
 $('btnRefresh').addEventListener('click', loadDashboard);
 $('btnExportCsv').addEventListener('click', exportCsv);
 $('searchInput').addEventListener('input', filterTable);
+$('cajeroSelect').addEventListener('change', applyClientFilters);
 
 loadDashboard();

@@ -26,10 +26,6 @@
         <a href="#reporte">Reporte</a>
       </nav>
 
-      <div class="sidebar-note">
-        <strong>Fuente:</strong>
-        <span>Google Sheet vía Apps Script</span>
-      </div>
     </aside>
 
     <main class="main-content">
@@ -61,6 +57,12 @@
         <div class="field">
           <label for="hastaInput">Hasta</label>
           <input type="date" id="hastaInput" />
+        </div>
+        <div class="field">
+          <label for="cajeroSelect">Cajero</label>
+          <select id="cajeroSelect">
+            <option value="">Todos</option>
+          </select>
         </div>
         <div class="field field-button">
           <button id="btnApply" class="btn primary full">Aplicar filtros</button>
@@ -124,8 +126,8 @@
         <article id="cajeros" class="card chart-card">
           <div class="card-title">
             <div>
-              <h3>Top cajeros</h3>
-              <p>Por monto recuperado</p>
+              <h3>Cajeros que más cobraron AVA</h3>
+              <p>Comparativo por monto recuperado</p>
             </div>
           </div>
           <canvas id="chartCajeros"></canvas>
