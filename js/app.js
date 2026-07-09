@@ -19,30 +19,52 @@ function dateFrom(r){
   ]);
 }
 function dateObj(v){
-  if(!v) return null;
+  if(!v && v!==0) return null;
   if(v instanceof Date && !isNaN(v)) return v;
-  const raw=String(v).trim();
-  let d=new Date(raw);
-  if(!isNaN(d)) return d;
 
-  // Soporte para fechas de Google Sheet/Excel en español:
-  // 20/04/2026 06:30:00 a. m. | 11/02/2026 03:30:00 p. m.
-  const clean = raw
-    .replace(/\s*a\.\s*m\.?/i,' AM')
-    .replace(/\s*p\.\s*m\.?/i,' PM')
-    .replace(/\s*a\s*m\.?/i,' AM')
-    .replace(/\s*p\s*m\.?/i,' PM');
-  const m = clean.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?)?/i);
+  // Si Google/Excel manda número serial de fecha
+  if(typeof v === 'number' && v > 20000){
+    const d = new Date(Math.round((v - 25569) * 86400 * 1000));
+    if(!isNaN(d)) return d;
+  }
+
+  let raw = String(v).trim();
+  if(!raw) return null;
+
+  // Quita espacios raros y variantes de a. m. / p. m.
+  raw = raw
+    .replace(/\u00a0/g,' ')
+    .replace(/\s+/g,' ')
+    .replace(/a\s*\.\s*m\s*\.?/ig,'AM')
+    .replace(/p\s*\.\s*m\s*\.?/ig,'PM')
+    .replace(/a\s*m\s*\.?/ig,'AM')
+    .replace(/p\s*m\s*\.?/ig,'PM')
+    .trim();
+
+  // ISO o formato generado por Apps Script: yyyy-mm-dd hh:mm:ss
+  let m = raw.match(/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?)?/i);
   if(m){
-    let dd=Number(m[1]), mm=Number(m[2])-1, yy=Number(m[3]);
-    let hh=Number(m[4]||0), mi=Number(m[5]||0), ss=Number(m[6]||0);
+    let yy=+m[1], mm=+m[2]-1, dd=+m[3], hh=+(m[4]||0), mi=+(m[5]||0), ss=+(m[6]||0);
     const ap=(m[7]||'').toUpperCase();
     if(ap==='PM' && hh<12) hh+=12;
     if(ap==='AM' && hh===12) hh=0;
-    d=new Date(yy,mm,dd,hh,mi,ss);
+    const d = new Date(yy,mm,dd,hh,mi,ss);
     if(!isNaN(d)) return d;
   }
-  return null;
+
+  // Formato México: dd/mm/yyyy hh:mm:ss AM/PM
+  m = raw.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?)?/i);
+  if(m){
+    let dd=+m[1], mm=+m[2]-1, yy=+m[3], hh=+(m[4]||0), mi=+(m[5]||0), ss=+(m[6]||0);
+    const ap=(m[7]||'').toUpperCase();
+    if(ap==='PM' && hh<12) hh+=12;
+    if(ap==='AM' && hh===12) hh=0;
+    const d = new Date(yy,mm,dd,hh,mi,ss);
+    if(!isNaN(d)) return d;
+  }
+
+  const d = new Date(raw);
+  return isNaN(d) ? null : d;
 }
 function ymd(d){ if(!d) return ''; return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function monthKey(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
@@ -57,8 +79,9 @@ async function fetchSheet(meta){
   if(json.error) throw new Error(`${meta.hoja}: ${json.mensaje}`);
   const rows = Array.isArray(json.datos) ? json.datos : [];
   return rows.map(r=>{
-    const d=dateObj(dateFrom(r));
-    return {...r, _hoja:meta.hoja, _empresa:meta.empresa, _tipo:meta.tipo, _monto:amountFrom(r,meta.tipo), _fecha:d, _fechaTexto:d?ymd(d):String(dateFrom(r)||''), _conductor:String(conductorFrom(r)||'SIN DATO').trim(), _cajero:String(cajeroFrom(r)||'SIN DATO').trim(), _bus:String(busFrom(r)||'').trim(), _folio:String(folioFrom(r)||'').trim()};
+    const fechaRaw = dateFrom(r);
+    const d=dateObj(fechaRaw);
+    return {...r, _hoja:meta.hoja, _empresa:meta.empresa, _tipo:meta.tipo, _monto:amountFrom(r,meta.tipo), _fecha:d, _fechaRaw:String(fechaRaw||''), _fechaTexto:d?ymd(d):String(fechaRaw||''), _conductor:String(conductorFrom(r)||'SIN DATO').trim(), _cajero:String(cajeroFrom(r)||'SIN DATO').trim(), _bus:String(busFrom(r)||'').trim(), _folio:String(folioFrom(r)||'').trim()};
   }).filter(r=>r._monto>0 || r._conductor !== 'SIN DATO');
 }
 async function loadData(){
@@ -69,7 +92,7 @@ async function loadData(){
     fillCajeros(); applyFilters();
     $('lastUpdate').textContent = new Date().toLocaleString('es-MX');
     $('sideStatus').textContent = 'Información cargada correctamente';
-    setStatus(`Información cargada · ${rawRows.length} registros`, 'ok');
+    setStatus(`Información cargada · ${rawRows.length} registros · Adeudos con fecha: ${rawRows.filter(r=>r._tipo==='ADEUDO' && periodKeyForRow(r,'month')).length}`, 'ok');
   }catch(e){ console.error(e); setStatus('Error de conexión: '+e.message, 'error'); $('sideStatus').textContent='Error al cargar'; }
   setTimeout(()=>$('splash')?.classList.add('hide'),700);
 }
@@ -94,7 +117,23 @@ function renderAll(){
   renderCharts(cob,ade,pct); renderTable();
 }
 function grouped(rows, keyFn, valFn){ const m=new Map(); rows.forEach(r=>{const k=keyFn(r)||'SIN DATO'; m.set(k,(m.get(k)||0)+valFn(r));}); return [...m].map(([name,value])=>({name,value})); }
-function byPeriod(period){ const rows=filteredRows.filter(r=>r._fecha); const keys=[...new Set(rows.map(r=>period==='year'?yearKey(r._fecha):monthKey(r._fecha)))].sort(); return keys.map(k=>({name:k,cobrado:rows.filter(r=>(period==='year'?yearKey(r._fecha):monthKey(r._fecha))===k&&r._tipo==='COBRADO').reduce((s,r)=>s+r._monto,0),adeudo:rows.filter(r=>(period==='year'?yearKey(r._fecha):monthKey(r._fecha))===k&&r._tipo==='ADEUDO').reduce((s,r)=>s+r._monto,0)})); }
+function periodKeyForRow(r, period){
+  const d = r._fecha || dateObj(r._fechaRaw) || dateObj(pick(r,['Fecha Corrida','Fecha del Viaje','Fecha Viaje','Fecha','Fecha Cobro','Fecha Sanción','Fecha Sancion','Fecha Recepción Reporte','Fecha Recepcion Reporte']));
+  if(!d) return '';
+  return period==='year' ? yearKey(d) : monthKey(d);
+}
+function byPeriod(period){
+  const mapa = new Map();
+  filteredRows.forEach(r=>{
+    const k = periodKeyForRow(r, period);
+    if(!k) return;
+    if(!mapa.has(k)) mapa.set(k,{name:k,cobrado:0,adeudo:0});
+    const item = mapa.get(k);
+    if(r._tipo==='COBRADO') item.cobrado += r._monto;
+    if(r._tipo==='ADEUDO') item.adeudo += r._monto;
+  });
+  return [...mapa.values()].sort((a,b)=>a.name.localeCompare(b.name));
+}
 function renderCharts(cob,ade,pct){
   const css=getComputedStyle(document.documentElement); const green=css.getPropertyValue('--green').trim(), red=css.getPropertyValue('--red').trim(), purple=css.getPropertyValue('--purple').trim(), blue=css.getPropertyValue('--blue').trim(), gold=css.getPropertyValue('--gold').trim();
   const empresa=['TRT','SUR'].map(e=>({name:e,cobrado:filteredRows.filter(r=>r._empresa===e&&r._tipo==='COBRADO').reduce((s,r)=>s+r._monto,0),adeudo:filteredRows.filter(r=>r._empresa===e&&r._tipo==='ADEUDO').reduce((s,r)=>s+r._monto,0)}));

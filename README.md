@@ -1,28 +1,13 @@
-# Centro de Control AVA Pro v10
+# Centro de Control AVA v12
 
-Proyecto listo para GitHub Pages.
+Versión corregida para comparativos mensual y anual.
 
-## Incluye
-- Donut con porcentaje al centro y animación.
-- Gráficas con degradados.
-- Comparativo mensual y anual.
-- Top 10 conductores con mayor adeudo.
-- Top 10 cajeros con mayor recuperación.
-- Búsqueda por conductor, autobús o folio.
-- Exportación CSV.
-- Exportación PDF corporativa.
-- Modo claro / oscuro.
-- Diseño responsive para celular y tablet.
+Cambios:
+- El comparativo mensual y anual ahora toma adeudos de AVATRT y AVASUR usando Fecha Corrida, Fecha del Viaje, Fecha Cobro o Fecha Sanción.
+- Se agregó lectura robusta de fechas en formato dd/mm/aaaa con a. m. / p. m.
+- Se mantiene el diseño ejecutivo con modo claro/oscuro, PDF, CSV, búsqueda avanzada y gráficas.
 
-## Instalación
-Sube todo el contenido del ZIP al repositorio de GitHub Pages y abre con Ctrl + F5.
-
-## Fuente de datos
-Conectado al Apps Script:
-https://script.google.com/macros/s/AKfycbxpX9FNMZZDL72L76vS4keCiWC3xPb79_cMkpcBk0_AqktKHizk7j5A6r53brRN9y9d/exec
-
-Hojas esperadas:
-- TRT
-- SUR
-- AVATRT
-- AVASUR
+Para actualizar en GitHub Pages:
+1. Sube todos los archivos de este ZIP reemplazando los actuales.
+2. Espera a que GitHub Pages termine de publicar.
+3. Abre la página con Ctrl + F5.
