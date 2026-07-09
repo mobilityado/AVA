@@ -38,6 +38,7 @@
       <a href="#tendencia">⌁ Tendencias</a>
       <a href="#cajeros">◉ Cajeros</a>
       <a href="#conductores">☷ Conductores</a>
+      <a href="#estatus">◈ Estatus</a>
       <a href="#reporte">▤ Reporte</a>
     </nav>
     <div class="side-status">
@@ -76,6 +77,7 @@
       <label>Desde<input id="desdeFilter" type="date" /></label>
       <label>Hasta<input id="hastaFilter" type="date" /></label>
       <label>Cajero<select id="cajeroFilter"><option value="TODOS">Todos</option></select></label>
+      <label>Estatus<select id="estatusFilter"><option value="TODOS">Todos</option></select></label>
       <label>Búsqueda avanzada<input id="searchFilter" type="search" placeholder="Conductor, autobús o folio..." /></label>
       <button id="applyFilters" class="primary">Aplicar filtros</button>
     </section>
@@ -102,9 +104,15 @@
       <article id="conductores" class="card chart-card"><span class="eyebrow">Adeudos</span><h3>Top 10 conductores con mayor adeudo</h3><canvas id="chartConductores"></canvas></article>
     </section>
 
+
+    <section id="estatus" class="grid two">
+      <article class="card chart-card"><span class="eyebrow">Estatus</span><h3>Monto por estatus</h3><canvas id="chartEstatusMonto"></canvas></article>
+      <article class="card chart-card"><span class="eyebrow">Distribución</span><h3>Registros por estatus</h3><canvas id="chartEstatusConteo"></canvas></article>
+    </section>
+
     <section id="reporte" class="card report-card">
       <div class="report-head"><div><span class="eyebrow">Reporte</span><h3>Detalle de movimientos</h3></div><span id="reportCount" class="pill">0 registros</span></div>
-      <div class="table-wrap"><table><thead><tr><th>Tipo</th><th>Empresa</th><th>Fecha</th><th>Folio/Viaje</th><th>Conductor</th><th>Autobús</th><th>Cajero</th><th>Monto</th></tr></thead><tbody id="reportBody"></tbody></table></div>
+      <div class="table-wrap"><table><thead><tr><th>Tipo</th><th>Estatus</th><th>Empresa</th><th>Fecha</th><th>Folio/Viaje</th><th>Conductor</th><th>Autobús</th><th>Cajero</th><th>Monto</th></tr></thead><tbody id="reportBody"></tbody></table></div>
     </section>
   </main>
 
