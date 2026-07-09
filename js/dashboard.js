@@ -26,13 +26,16 @@ function bindEvents(){
   $('exportBtn').addEventListener('click', exportCSV);
   $('menuBtn').addEventListener('click', ()=>$('sidebar').classList.toggle('open'));
 }
-function cargarFiltros(){ optionList('cajeroFilter', uniq(ALL_ROWS.filter(r=>r.tipo==='COBRADO').map(r=>r.cajero)), 'Todos'); optionList('conductorFilter', uniq(ALL_ROWS.map(r=>r.conductor)), 'Todos'); }
+function cargarFiltros(){
+  optionList('cajeroFilter', uniq(ALL_ROWS.filter(r=>r.tipo==='COBRADO' && r.cajero && r.cajero!=='SIN CAJERO').map(r=>r.cajero)), 'Todos');
+  optionList('conductorFilter', uniq(ALL_ROWS.map(r=>r.conductor)), 'Todos');
+}
 function aplicarFiltros(){
   const emp=$('empresaFilter').value, tipo=$('tipoFilter').value, caj=$('cajeroFilter').value, con=$('conductorFilter').value, desde=$('desdeFilter').value, hasta=$('hastaFilter').value;
   FILTERED = ALL_ROWS.filter(r=>{
     if(emp!=='TODAS' && r.empresa!==emp) return false;
     if(tipo!=='AMBOS' && r.tipo!==tipo) return false;
-    if(caj!=='TODOS' && r.cajero!==caj) return false;
+    if(caj!=='TODOS' && r.tipo==='COBRADO' && r.cajero!==caj) return false;
     if(con!=='TODOS' && r.conductor!==con) return false;
     if(desde && r.fecha && r.fecha < desde) return false;
     if(hasta && r.fecha && r.fecha > hasta) return false;
@@ -53,7 +56,7 @@ function renderCharts(){
   const adeEmp=empresas.map(e=>sum(FILTERED.filter(r=>r.empresa===e&&r.tipo==='ADEUDO'),r=>r.monto));
   renderBar('chartEmpresa', empresas, [{label:'Cobrado',data:cobEmp,backgroundColor:COLORS.green},{label:'Adeudo',data:adeEmp,backgroundColor:COLORS.red}]);
   renderDonut('chartDonut', sum(FILTERED.filter(r=>r.tipo==='COBRADO'),r=>r.monto), sum(FILTERED.filter(r=>r.tipo==='ADEUDO'),r=>r.monto));
-  const fechas=uniq(FILTERED.map(r=>r.fecha)).slice(-40);
+  const fechas=uniq(FILTERED.map(r=>r.fecha).filter(Boolean)).slice(-40);
   renderLine('chartTendencia', fechas, fechas.map(f=>sum(FILTERED.filter(r=>r.fecha===f&&r.tipo==='COBRADO'),r=>r.monto)), fechas.map(f=>sum(FILTERED.filter(r=>r.fecha===f&&r.tipo==='ADEUDO'),r=>r.monto)));
   const caj=groupSum(FILTERED.filter(r=>r.tipo==='COBRADO'), r=>r.cajero, r=>r.monto).slice(0,10).reverse();
   renderBar('chartCajeros', caj.map(x=>x.name), [{label:'Cobrado',data:caj.map(x=>x.value),backgroundColor:COLORS.purple}], true);

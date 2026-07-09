@@ -1,7 +1,7 @@
 const chartRefs = {};
 const COLORS = {
   navy:'#0b1f3a', blue:'#1f5eff', teal:'#0f766e', emerald:'#059669', slate:'#64748b',
-  red:'#b42318', amber:'#b7791f', violet:'#6d28d9', cyan:'#0891b2', ink:'#111827'
+  red:'#b42318', amber:'#b7791f', orange:'#c2410c', green:'#0f766e', violet:'#4f46e5', cyan:'#0891b2', ink:'#111827'
 };
 function money(v){return Number(v||0).toLocaleString('es-MX',{style:'currency',currency:'MXN'});}
 function pct(v){return `${Math.round(v||0)}%`;}

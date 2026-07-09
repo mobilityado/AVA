@@ -23,11 +23,17 @@ async function cargarTodo(){
   return { data, errores };
 }
 function normalizarRegistro(r, meta){
-  const cajero = pick(r, ['Nombre Cajero','Cajero','Cajero Cobro','Usuario Cajero','Nombre del Cajero']);
+  const cajero = meta.tipo === 'ADEUDO'
+    ? pick(r, ['Preceptor','Analista','Nombre Cajero','Cajero','Cajero Cobro','Usuario Cajero','Nombre del Cajero'])
+    : pick(r, ['Nombre Cajero','Cajero','Cajero Cobro','Usuario Cajero','Nombre del Cajero']);
   const conductor = pick(r, ['Conductor','Nombre Conductor','Operador','Nombre Operador']);
-  const fecha = pick(r, ['Fecha del Viaje','Fecha Viaje','Fecha','Fecha Cobro','Fecha de Viaje']);
-  const viaje = pick(r, ['Viaje','No Viaje','Número de Viaje','Num Viaje','Folio']);
-  const montoRaw = pick(r, ['Monto Recuperado','Monto Adeudo','Adeudo','Monto','Importe','Saldo','Total']);
+  const fecha = meta.tipo === 'ADEUDO'
+    ? pick(r, ['Fecha Corrida','Fecha del Viaje','Fecha Viaje','Fecha','Fecha Cobro','Fecha de Viaje','Fecha Recepción Reporte'])
+    : pick(r, ['Fecha del Viaje','Fecha Viaje','Fecha','Fecha Cobro','Fecha de Viaje']);
+  const viaje = pick(r, ['Viaje','Id Viaje','ID Viaje','No Viaje','Número de Viaje','Num Viaje','Folio','Reporte']);
+  const montoRaw = meta.tipo === 'ADEUDO'
+    ? pick(r, ['Por Cobrar','Monto Adeudo','Adeudo','Saldo','Costo','Monto','Importe','Total'])
+    : pick(r, ['Monto Recuperado','Monto Cobrado','Monto','Importe','Total','Por Cobrar']);
   return {
     raw:r,
     tipo:meta.tipo,
@@ -37,7 +43,8 @@ function normalizarRegistro(r, meta){
     conductor:clean(conductor) || 'SIN CONDUCTOR',
     fecha:normalizarFecha(fecha),
     viaje:clean(viaje) || '',
-    monto:parseMoney(montoRaw)
+    monto:parseMoney(montoRaw),
+    estatus: clean(pick(r, ['Estatus','Status','Estado'])) || ''
   };
 }
 function pick(obj, names){
@@ -53,7 +60,12 @@ function norm(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[\
 function clean(v){return String(v ?? '').trim();}
 function parseMoney(v){
   if(typeof v === 'number') return isFinite(v)?v:0;
-  let s = String(v ?? '').replace(/\$/g,'').replace(/,/g,'').replace(/\s/g,'').replace(/[()]/g,'-');
+  let s = String(v ?? '')
+    .replace(/\$/g,'')
+    .replace(/,/g,'')
+    .replace(/%/g,'')
+    .replace(/\s/g,'')
+    .replace(/[()]/g,'-');
   const n = Number(s); return isFinite(n)?Math.abs(n):0;
 }
 function normalizarFecha(v){

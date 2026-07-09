@@ -1,23 +1,17 @@
-# Centro de Control AVA Pro v5
+# Centro de Control AVA Pro v6
 
-Versión corregida y con colores más profesionales.
+Corrección para adeudos AVATRT y AVASUR.
 
-## Corrección incluida
+## Qué se corrigió
 
-- Corrige el error: `sum is not defined`.
-- Evita que el dashboard se rompa si la librería de gráficas tarda o no carga.
-- Agrega cache buster `?v=5` para que GitHub Pages no conserve archivos viejos.
-- Paleta profesional: azul marino, azul corporativo, teal, rojo ejecutivo y violeta discreto.
+- Ahora las hojas `AVATRT` y `AVASUR` leen el monto desde la columna **Por Cobrar**.
+- También detecta **Costo**, **Adeudo**, **Saldo** o **Monto Adeudo** si en el futuro cambia el encabezado.
+- Para adeudos usa fecha de **Fecha Corrida**.
+- Para cobros sigue usando **Monto Recuperado** y **Nombre Cajero**.
+- Corrige colores faltantes en gráficas.
 
-## Para actualizar en GitHub
+## Actualización
 
-1. Descomprime el ZIP.
-2. Sube y reemplaza todos los archivos en tu repositorio `AVA`.
-3. Espera 2 a 5 minutos.
-4. Abre la página y presiona `Ctrl + F5` para limpiar caché.
+Sube y reemplaza todo el contenido del ZIP en GitHub. Después abre la página con `Ctrl + F5`.
 
-## Apps Script
-
-No necesitas cambiarlo si las ligas `?accion=datos&hoja=TRT`, `SUR`, `AVATRT` y `AVASUR` abren correctamente.
-
-La URL está en `js/api.js`.
+No necesitas cambiar Apps Script si las URL `?accion=datos&hoja=AVATRT` y `?accion=datos&hoja=AVASUR` abren correctamente.
