@@ -32,14 +32,14 @@
       <div><strong>AVA</strong><span>Mobility ADO</span></div>
     </div>
     <nav>
-      <a class="active" href="#dashboard">▣ Dashboard</a>
-      <a href="#cobrado">● Cobrado</a>
-      <a href="#adeudos">● Adeudos</a>
-      <a href="#tendencia">⌁ Tendencias</a>
-      <a href="#cajeros">◉ Cajeros</a>
-      <a href="#conductores">☷ Conductores</a>
-      <a href="#estatus">◈ Estatus</a>
-      <a href="#reporte">▤ Reporte</a>
+      <a class="active" href="#dashboard">📊 Dashboard Ejecutivo</a>
+      <a href="#conductores">🚌 Conductores</a>
+      <a href="#cajeros">💰 Cajeros</a>
+      <a href="#origenDestino">🗺️ Rutas</a>
+      <a href="#tendencia">📈 Tendencias</a>
+      <a href="#resumenIA">🤖 Resumen Inteligente</a>
+      <a href="#reporte">📄 Reportes</a>
+      <a href="#configuracion">⚙️ Configuración</a>
     </nav>
     <div class="side-status">
       <small>Estado</small>
@@ -59,7 +59,7 @@
         <button id="themeBtn" class="ghost">🌓 Tema</button>
         <button id="refreshBtn" class="ghost">Actualizar</button>
         <button id="pdfBtn" class="primary">Exportar PDF</button>
-        <button id="csvBtn" class="primary green">Exportar CSV</button>
+        <button id="csvBtn" class="primary green">Exportar Excel</button>
       </section>
     </header>
 
@@ -69,6 +69,17 @@
         <h2>TRT / SUR cobrado · AVATRT / AVASUR adeudos</h2>
       </div>
       <div id="connectionStatus" class="pill loading">Cargando información...</div>
+    </section>
+
+    <section class="module-grid">
+      <a class="module-card" href="#dashboard"><span>📊</span><strong>Dashboard Ejecutivo</strong><small>KPIs, recuperación, adeudos y pronóstico.</small></a>
+      <a class="module-card" href="#conductores"><span>🚌</span><strong>Conductores</strong><small>Historial completo, búsqueda y alertas.</small></a>
+      <a class="module-card" href="#cajeros"><span>💰</span><strong>Cajeros</strong><small>Desempeño, recuperación y ranking.</small></a>
+      <a class="module-card" href="#origenDestino"><span>🗺️</span><strong>Rutas</strong><small>Origen-destino y rutas más concurridas.</small></a>
+      <a class="module-card" href="#tendencia"><span>📈</span><strong>Tendencias</strong><small>Comparativo mensual, anual y forecast.</small></a>
+      <a class="module-card" href="#resumenIA"><span>🤖</span><strong>Resumen Inteligente</strong><small>Insights automáticos para gerencia.</small></a>
+      <a class="module-card" href="#reporte"><span>📄</span><strong>Reportes</strong><small>PDF y Excel/CSV corporativo.</small></a>
+      <a class="module-card" href="#configuracion"><span>⚙️</span><strong>Configuración</strong><small>Metas, umbrales y apariencia.</small></a>
     </section>
 
     <section class="filters card">
@@ -87,6 +98,7 @@
       <article class="kpi accent-red"><span>Total adeudo</span><strong id="kpiAdeudo">$0</strong><small id="kpiPendientes">0 pendientes</small></article>
       <article class="kpi accent-purple"><span>% recuperación</span><strong id="kpiRecuperacion">0%</strong><small>Cobrado vs total</small></article>
       <article class="kpi accent-blue"><span>Conductores con adeudo</span><strong id="kpiConductores">0</strong><small>Con saldo pendiente</small></article>
+      <article class="kpi accent-gold"><span>Pronóstico cierre de mes</span><strong id="kpiForecast">$0</strong><small id="kpiForecastNote">Según tendencia actual</small></article>
     </section>
 
     <section class="grid two">
@@ -100,8 +112,8 @@
     </section>
 
     <section class="grid two">
-      <article id="cajeros" class="card chart-card"><span class="eyebrow">Ranking</span><h3>Top 10 cajeros con mayor recuperación</h3><canvas id="chartCajeros"></canvas></article>
-      <article id="conductores" class="card chart-card"><span class="eyebrow">Adeudos</span><h3>Top 10 conductores con mayor adeudo</h3><canvas id="chartConductores"></canvas></article>
+      <article id="cajeros" class="card chart-card"><span class="eyebrow">Ranking</span><h3>Top 10 cajeros con mayor recuperación</h3><canvas id="chartCajeros"></canvas><div id="medalCajeros" class="medal-list"></div></article>
+      <article id="conductores" class="card chart-card"><span class="eyebrow">Adeudos</span><h3>Top 10 conductores con mayor adeudo</h3><canvas id="chartConductores"></canvas><div id="medalConductores" class="medal-list"></div></article>
     </section>
 
 
@@ -110,12 +122,64 @@
       <article class="card chart-card"><span class="eyebrow">Distribución</span><h3>Registros por estatus</h3><canvas id="chartEstatusConteo"></canvas></article>
     </section>
 
+    <section id="inteligencia" class="grid two">
+      <article class="card chart-card gauge-card"><span class="eyebrow">Gauge</span><h3>Velocímetro de recuperación</h3><div class="gauge-wrap"><canvas id="chartGauge"></canvas><div class="gauge-center"><strong id="gaugePercent">0%</strong><span>Recuperación</span></div></div><p id="gaugeText" class="insight-text">Calculando desempeño...</p></article>
+      <article class="card alert-card"><div class="report-head"><div><span class="eyebrow">Alertas</span><h3>Adeudos superiores al límite</h3></div><label class="threshold-label">Límite <input id="debtThreshold" type="number" value="5000" min="0" step="500"></label></div><div id="alertsList" class="alerts-list"></div></article>
+    </section>
+
+    <section class="grid two">
+      <article class="card"><div class="report-head"><div><span class="eyebrow">Mapa de calor</span><h3>Estatus por cajero</h3></div><small>clic en una celda para detalle</small></div><div id="heatmapCajero" class="heatmap"></div></article>
+      <article class="card"><div class="report-head"><div><span class="eyebrow">Mapa de calor</span><h3>Estatus por conductor</h3></div><small>Top con más movimientos</small></div><div id="heatmapConductor" class="heatmap"></div></article>
+    </section>
+
+    <section id="origenDestino" class="grid two">
+      <article class="card chart-card"><span class="eyebrow">Rutas</span><h3>Origen - destino más concurrido</h3><canvas id="chartRutas"></canvas><div id="topRutas" class="medal-list"></div></article>
+      <article class="card chart-card"><span class="eyebrow">Pronóstico</span><h3>Proyección de recuperación mensual</h3><canvas id="chartForecast"></canvas><p id="forecastText" class="insight-text">Calculando pronóstico...</p></article>
+    </section>
+
+    <section id="resumenIA" class="grid two">
+      <article class="card insight-card">
+        <div class="report-head"><div><span class="eyebrow">Resumen Inteligente</span><h3>Lectura ejecutiva automática</h3></div><span class="pill ok">IA local</span></div>
+        <div id="insightsList" class="insights-list"></div>
+      </article>
+      <article class="card insight-card">
+        <div class="report-head"><div><span class="eyebrow">Acciones sugeridas</span><h3>Prioridades operativas</h3></div><span class="pill">Gerencia</span></div>
+        <div id="actionsList" class="insights-list action"></div>
+      </article>
+    </section>
+
+    <section id="configuracion" class="card config-card">
+      <div class="report-head"><div><span class="eyebrow">Configuración</span><h3>Metas, umbrales y apariencia</h3></div><span class="pill">Local</span></div>
+      <div class="config-grid">
+        <label>Meta mensual de recuperación<input id="monthlyGoal" type="number" value="50000" min="0" step="1000"></label>
+        <label>Umbral de alerta por conductor<input id="configDebtThreshold" type="number" value="5000" min="0" step="500"></label>
+        <label>Refrescar cada<select id="autoRefresh"><option value="0">Manual</option><option value="300000">5 minutos</option><option value="900000">15 minutos</option><option value="1800000">30 minutos</option></select></label>
+        <label>Modo visual<select id="themeSelect"><option value="light">Claro</option><option value="dark">Oscuro</option></select></label>
+      </div>
+      <div class="goal-preview">
+        <div><span>Avance contra meta</span><strong id="goalPercent">0%</strong></div>
+        <div class="goal-bar"><span id="goalBar"></span></div>
+        <p id="goalText">Configura la meta mensual para ver avance.</p>
+      </div>
+      <div class="config-actions"><button id="saveConfig" class="primary">Guardar configuración</button><button id="resetConfig" class="ghost">Restablecer</button></div>
+    </section>
+
     <section id="reporte" class="card report-card">
       <div class="report-head"><div><span class="eyebrow">Reporte</span><h3>Detalle de movimientos</h3></div><span id="reportCount" class="pill">0 registros</span></div>
       <div class="table-wrap"><table><thead><tr><th>Tipo</th><th>Estatus</th><th>Empresa</th><th>Fecha</th><th>Folio/Viaje</th><th>Conductor</th><th>Autobús</th><th>Cajero</th><th>Monto</th></tr></thead><tbody id="reportBody"></tbody></table></div>
     </section>
   </main>
 
+  <div id="detailPanel" class="detail-panel" aria-hidden="true">
+    <div class="detail-backdrop" id="detailBackdrop"></div>
+    <aside class="detail-drawer">
+      <button id="detailClose" class="detail-close">×</button>
+      <span class="eyebrow" id="detailKind">Detalle</span>
+      <h2 id="detailTitle">Historial</h2>
+      <div id="detailStats" class="detail-stats"></div>
+      <div class="table-wrap small"><table><thead><tr><th>Tipo</th><th>Estatus</th><th>Empresa</th><th>Fecha</th><th>Folio/Viaje</th><th>Conductor</th><th>Autobús</th><th>Cajero</th><th>Monto</th></tr></thead><tbody id="detailBody"></tbody></table></div>
+    </aside>
+  </div>
   <script src="js/app.js"></script>
 </body>
 </html>
