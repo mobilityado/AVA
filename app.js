@@ -1,239 +1,292 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbxpX9FNMZZDL72L76vS4keCiWC3xPb79_cMkpcBk0_AqktKHizk7j5A6r53brRN9y9d/exec';
-const HOJAS_COBRO = ['TRT', 'SUR'];
-const HOJAS_ADEUDO = ['AVATRT', 'AVASUR'];
-const COLORS = {
-  green: '#16a34a', red: '#dc2626', blue: '#2563eb', orange: '#f97316', purple: '#7c3aed', cyan: '#0891b2', yellow: '#eab308', dark: '#1f2937', pink: '#db2777'
-};
+const HOJAS = [
+  { nombre: 'TRT', empresa: 'TRT', tipo: 'COBRADO' },
+  { nombre: 'SUR', empresa: 'SUR', tipo: 'COBRADO' },
+  { nombre: 'AVATRT', empresa: 'TRT', tipo: 'ADEUDO' },
+  { nombre: 'AVASUR', empresa: 'SUR', tipo: 'ADEUDO' }
+];
+const COLORS = ['#0f766e','#2563eb','#f59e0b','#dc2626','#7c3aed','#0891b2','#16a34a','#db2777','#475569','#ea580c'];
 let allRows = [];
+let currentRows = [];
 let charts = {};
-const $ = id => document.getElementById(id);
-const money = n => Number(n || 0).toLocaleString('es-MX', { style:'currency', currency:'MXN' });
-const num = n => Number(n || 0).toLocaleString('es-MX');
 
-function getField(row, names){
-  for(const name of names){
-    const key = Object.keys(row).find(k => normalizeKey(k) === normalizeKey(name));
-    if(key && row[key] !== undefined && row[key] !== null && String(row[key]).trim() !== '') return row[key];
+const $ = id => document.getElementById(id);
+const money = n => Number(n || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
+const number = n => Number(n || 0).toLocaleString('es-MX');
+const cleanKey = v => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+const cleanText = v => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+function setStatus(msg, type = '') {
+  $('statusBox').textContent = msg;
+  $('statusBox').className = `status card ${type}`;
+  $('lastUpdate').textContent = msg;
+}
+
+function getField(row, names) {
+  const keys = Object.keys(row || {});
+  for (const name of names) {
+    const found = keys.find(k => cleanKey(k) === cleanKey(name));
+    if (found && row[found] !== null && row[found] !== undefined && String(row[found]).trim() !== '') return row[found];
   }
   return '';
 }
-function normalizeKey(v){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');}
-function parseAmount(v){
-  if(typeof v === 'number') return v;
-  return Number(String(v||'').replace(/\$/g,'').replace(/,/g,'').replace(/%/g,'').trim()) || 0;
+
+function parseAmount(v) {
+  if (typeof v === 'number') return v;
+  return Number(String(v || '').replace(/\$/g, '').replace(/,/g, '').replace(/%/g, '').trim()) || 0;
 }
-function parseDate(value){
-  if(!value) return null;
-  if(value instanceof Date) return value;
-  const s = String(value).trim();
-  if(/^\d+(\.\d+)?$/.test(s)){
+
+function parseDate(v) {
+  if (!v) return null;
+  if (v instanceof Date) return v;
+  const s = String(v).trim();
+  if (/^\d+(\.\d+)?$/.test(s)) {
     const serial = Number(s);
-    if(serial > 20000) return new Date(Math.round((serial - 25569) * 86400 * 1000));
+    if (serial > 20000) return new Date(Math.round((serial - 25569) * 86400 * 1000));
   }
-  let clean = s.replace('a. m.','AM').replace('p. m.','PM').replace('a.m.','AM').replace('p.m.','PM');
-  let d = new Date(clean);
-  if(!isNaN(d)) return d;
-  const m = clean.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?)?/i);
-  if(m){
-    let h = Number(m[4]||0); const min = Number(m[5]||0); const sec = Number(m[6]||0); const ap = (m[7]||'').toUpperCase();
-    if(ap === 'PM' && h < 12) h += 12; if(ap === 'AM' && h === 12) h = 0;
-    return new Date(Number(m[3]), Number(m[2])-1, Number(m[1]), h, min, sec);
-  }
+  let d = new Date(s.replace('a. m.', 'AM').replace('p. m.', 'PM').replace('a.m.', 'AM').replace('p.m.', 'PM'));
+  if (!isNaN(d)) return d;
+  const m = s.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (m) return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
   return null;
 }
-function isoDate(d){ return d ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` : ''; }
-function monthKey(d){ return d ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` : 'Sin fecha'; }
-function empresaFromSheet(sheet){ return String(sheet||'').toUpperCase().includes('SUR') ? 'SUR' : 'TRT'; }
 
-async function fetchSheet(sheet){
-  const url = `${API_URL}?accion=datos&hoja=${encodeURIComponent(sheet)}&_=${Date.now()}`;
-  const res = await fetch(url, { cache: 'no-store' });
-  if(!res.ok) throw new Error(`No se pudo leer ${sheet}: HTTP ${res.status}`);
-  const data = await res.json();
-  if(data.error) throw new Error(`${sheet}: ${data.mensaje || 'Error devuelto por Apps Script'}`);
-  return data.datos || data.data || [];
+function isoDate(d) {
+  if (!d) return '';
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
-async function loadData(){
-  setStatus('Cargando información desde Google Sheet...');
-  const sheets = [...HOJAS_COBRO, ...HOJAS_ADEUDO];
-  try{
-    const responses = await Promise.allSettled(sheets.map(async sheet => ({sheet, rows: await fetchSheet(sheet)})));
-    const ok = responses.filter(r => r.status === 'fulfilled').map(r => r.value);
-    const bad = responses.filter(r => r.status === 'rejected').map(r => r.reason.message);
+function monthKey(d) {
+  if (!d) return 'Sin fecha';
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
 
-    allRows = ok.flatMap(({sheet, rows}) => rows.map(row => normalizeRow(row, sheet))).filter(r => r.monto > 0 || r.tipo === 'ADEUDO');
-    populateFilters();
-    applyFilters();
-
-    if(!allRows.length){
-      setStatus('No se cargaron registros. Revisa que la implementación de Apps Script tenga acceso público y que las pestañas se llamen TRT, SUR, AVATRT y AVASUR.', 'error');
-      return;
-    }
-
-    const extra = bad.length ? ` Algunas hojas no cargaron: ${bad.join(' | ')}` : '';
-    setStatus(`Información actualizada: ${num(allRows.length)} registros cargados.${extra}`, bad.length ? 'warn' : 'ok');
-  }catch(err){
-    console.error(err);
-    setStatus(`Error al cargar información: ${err.message}`, 'error');
+async function fetchWithTimeout(url, ms = 12000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  try {
+    const res = await fetch(url, { cache: 'no-store', signal: controller.signal });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
   }
 }
-function normalizeRow(row, sheet){
-  const tipo = HOJAS_ADEUDO.includes(sheet) ? 'ADEUDO' : 'COBRADO';
-  const fechaRaw = tipo === 'COBRADO' ? getField(row, ['Fecha del Viaje','Fecha Viaje','Fecha']) : getField(row, ['Fecha Corrida','Fecha Sanción','Fecha Recepción Reporte','Fecha Cobro']);
+
+async function fetchSheet(cfg) {
+  const url = `${API_URL}?accion=datos&hoja=${encodeURIComponent(cfg.nombre)}&t=${Date.now()}`;
+  const data = await fetchWithTimeout(url);
+  if (data.error) throw new Error(data.mensaje || 'Apps Script devolvió error');
+  const rows = data.datos || data.data || [];
+  return rows.map(row => normalizeRow(row, cfg));
+}
+
+function normalizeRow(row, cfg) {
+  const fechaRaw = cfg.tipo === 'COBRADO'
+    ? getField(row, ['Fecha del Viaje', 'Fecha Viaje', 'Fecha', 'Fecha Cobro'])
+    : getField(row, ['Fecha Corrida', 'Fecha Sanción', 'Fecha Recepción Reporte', 'Fecha']);
   const fecha = parseDate(fechaRaw);
-  const conductor = getField(row, ['Conductor','Operador']);
-  const cajero = tipo === 'COBRADO' ? getField(row, ['Nombre Cajero','Cajero','Cajero Cobro']) : getField(row, ['Preceptor','Analista','Nombre Cajero','Cajero']);
-  const monto = tipo === 'COBRADO' ? parseAmount(getField(row, ['Monto Recuperado','Monto','Importe'])) : parseAmount(getField(row, ['Por Cobrar','Costo','Monto','Importe']));
-  const estatus = tipo === 'COBRADO' ? 'Cobrado' : String(getField(row, ['Estatus','Sanción','Status']) || 'Pendiente');
+  const conductor = getField(row, ['Conductor', 'Operador']);
+  const cajero = cfg.tipo === 'COBRADO'
+    ? getField(row, ['Nombre Cajero', 'Cajero', 'Cajero Cobro'])
+    : getField(row, ['Preceptor', 'Analista', 'Nombre Cajero', 'Cajero']);
+  const monto = cfg.tipo === 'COBRADO'
+    ? parseAmount(getField(row, ['Monto Recuperado', 'Monto', 'Importe']))
+    : parseAmount(getField(row, ['Por Cobrar', 'Costo', 'Monto Adeudo', 'Adeudo', 'Monto', 'Importe']));
   return {
-    tipo,
-    empresa: empresaFromSheet(sheet),
-    sheet,
+    tipo: cfg.tipo,
+    empresa: cfg.empresa,
+    hoja: cfg.nombre,
     fecha,
     fechaISO: isoDate(fecha),
     mes: monthKey(fecha),
-    viaje: getField(row, ['Viaje','Id Viaje','ID Viaje','Reporte']),
-    autobus: getField(row, ['Autobus','Autobús']),
+    viaje: getField(row, ['Viaje', 'Id Viaje', 'ID Viaje', 'Reporte']),
+    autobus: getField(row, ['Autobus', 'Autobús']),
     conductor,
     cajero,
-    estatus,
+    estatus: cfg.tipo === 'COBRADO' ? 'Cobrado' : String(getField(row, ['Sanción', 'Estatus', 'Status', 'Tipo']) || 'Pendiente'),
     monto,
-    pasajeros: parseAmount(getField(row, ['Numero de Pasajeros','Número de Pasajeros','Pasajeros'])),
+    pasajeros: parseAmount(getField(row, ['Numero de Pasajeros', 'Número de Pasajeros', 'Pasajeros'])),
     raw: row
   };
 }
-function populateFilters(){
-  const cajeros = unique(allRows.map(r=>r.cajero).filter(Boolean));
-  const conductores = unique(allRows.map(r=>r.conductor).filter(Boolean));
-  fillSelect($('filterCajero'), cajeros, 'TODOS', 'Todos');
-  fillSelect($('filterConductor'), conductores, 'TODOS', 'Todos');
-}
-function unique(arr){return [...new Set(arr.map(x=>String(x).trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));}
-function fillSelect(select, values, allValue, allText){
-  const current = select.value || allValue;
-  select.innerHTML = `<option value="${allValue}">${allText}</option>` + values.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
-  select.value = [...select.options].some(o=>o.value===current) ? current : allValue;
-}
-function applyFilters(){
-  const empresa = $('filterEmpresa').value;
-  const tipo = $('filterTipo').value;
-  const desde = $('filterDesde').value;
-  const hasta = $('filterHasta').value;
-  const cajero = $('filterCajero').value;
-  const conductor = $('filterConductor').value;
-  const search = normalizeText($('searchBox').value);
-  const rows = allRows.filter(r => {
-    if(empresa !== 'TODAS' && r.empresa !== empresa) return false;
-    if(tipo !== 'AMBOS' && r.tipo !== tipo) return false;
-    if(desde && r.fechaISO < desde) return false;
-    if(hasta && r.fechaISO > hasta) return false;
-    if(cajero !== 'TODOS' && r.cajero !== cajero) return false;
-    if(conductor !== 'TODOS' && r.conductor !== conductor) return false;
-    if(search){
-      const hay = normalizeText([r.tipo,r.empresa,r.fechaISO,r.viaje,r.conductor,r.cajero,r.estatus,r.monto].join(' '));
-      if(!hay.includes(search)) return false;
+
+async function loadData() {
+  allRows = [];
+  clearVisuals();
+  setStatus('Cargando información desde Google Sheet...');
+  const errores = [];
+
+  for (const cfg of HOJAS) {
+    try {
+      setStatus(`Leyendo pestaña ${cfg.nombre}...`);
+      const rows = await fetchSheet(cfg);
+      allRows.push(...rows);
+    } catch (err) {
+      console.error(cfg.nombre, err);
+      errores.push(`${cfg.nombre}: ${err.name === 'AbortError' ? 'tiempo agotado' : err.message}`);
     }
+  }
+
+  allRows = allRows.filter(r => r.conductor || r.viaje || r.monto > 0);
+  populateFilters();
+  applyFilters();
+
+  if (!allRows.length) {
+    setStatus('No se pudieron cargar registros. Abre la consola del navegador con F12 para ver el detalle o revisa que el Apps Script esté publicado para cualquier usuario.', 'error');
+    return;
+  }
+
+  const msg = `Actualizado: ${number(allRows.length)} registros cargados de Google Sheet.`;
+  setStatus(errores.length ? `${msg} Hojas con aviso: ${errores.join(' | ')}` : msg, errores.length ? 'warn' : 'ok');
+}
+
+function populateFilters() {
+  fillSelect('cajeroSelect', unique(allRows.map(r => r.cajero).filter(Boolean)), 'Todos');
+  fillSelect('conductorSelect', unique(allRows.map(r => r.conductor).filter(Boolean)), 'Todos');
+}
+function fillSelect(id, values, label) {
+  const select = $(id);
+  const current = select.value;
+  select.innerHTML = `<option value="">${label}</option>` + values.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+  if (values.includes(current)) select.value = current;
+}
+function unique(arr) { return [...new Set(arr.map(v => String(v).trim()).filter(Boolean))].sort((a,b) => a.localeCompare(b, 'es')); }
+
+function applyFilters() {
+  const empresa = $('empresaSelect').value;
+  const tipo = $('tipoSelect').value;
+  const desde = $('desdeInput').value;
+  const hasta = $('hastaInput').value;
+  const cajero = $('cajeroSelect').value;
+  const conductor = $('conductorSelect').value;
+  const search = cleanText($('searchInput').value);
+
+  currentRows = allRows.filter(r => {
+    if (empresa && r.empresa !== empresa) return false;
+    if (tipo && r.tipo !== tipo) return false;
+    if (desde && r.fechaISO && r.fechaISO < desde) return false;
+    if (hasta && r.fechaISO && r.fechaISO > hasta) return false;
+    if (cajero && r.cajero !== cajero) return false;
+    if (conductor && r.conductor !== conductor) return false;
+    if (search && !cleanText([r.tipo, r.empresa, r.fechaISO, r.viaje, r.conductor, r.cajero, r.estatus, r.monto].join(' ')).includes(search)) return false;
     return true;
   });
-  renderKpis(rows);
-  renderCharts(rows);
-  renderTable(rows);
+
+  renderKpis(currentRows);
+  renderTable(currentRows);
+  renderChartsSafe(currentRows);
 }
-function renderKpis(rows){
-  const cobros = rows.filter(r=>r.tipo==='COBRADO');
-  const adeudos = rows.filter(r=>r.tipo==='ADEUDO' && !isCobradoStatus(r.estatus));
-  const totalCobrado = sum(cobros, 'monto');
-  const totalAdeudo = sum(adeudos, 'monto');
+
+function isPendingDebt(r) {
+  const s = cleanText(r.estatus);
+  if (s.includes('cobrado') || s.includes('pagado') || s.includes('condonado')) return false;
+  return r.tipo === 'ADEUDO';
+}
+function renderKpis(rows) {
+  const cobros = rows.filter(r => r.tipo === 'COBRADO');
+  const adeudos = rows.filter(isPendingDebt);
+  const totalCobrado = sum(cobros);
+  const totalAdeudo = sum(adeudos);
   const recuperacion = totalCobrado + totalAdeudo ? (totalCobrado / (totalCobrado + totalAdeudo)) * 100 : 0;
   $('kpiCobrado').textContent = money(totalCobrado);
-  $('kpiCobros').textContent = `${num(cobros.length)} movimientos`;
+  $('kpiCobros').textContent = `${number(cobros.length)} movimientos`;
   $('kpiAdeudo').textContent = money(totalAdeudo);
-  $('kpiAdeudos').textContent = `${num(adeudos.length)} pendientes`;
+  $('kpiAdeudos').textContent = `${number(adeudos.length)} pendientes`;
   $('kpiRecuperacion').textContent = `${recuperacion.toFixed(1)}%`;
-  $('kpiConductoresAdeudo').textContent = num(unique(adeudos.map(r=>r.conductor)).length);
-  $('kpiEventos').textContent = num(sum(rows, 'pasajeros') || rows.length);
-  $('kpiPromedio').textContent = money(cobros.length ? totalCobrado / cobros.length : 0);
+  $('kpiConductoresAdeudo').textContent = number(unique(adeudos.map(r => r.conductor)).length);
 }
-function renderCharts(rows){
-  const cobros = rows.filter(r=>r.tipo==='COBRADO');
-  const adeudosPend = rows.filter(r=>r.tipo==='ADEUDO' && !isCobradoStatus(r.estatus));
-  const porEmpresa = ['TRT','SUR'].map(empresa => ({empresa, cobrado: sum(cobros.filter(r=>r.empresa===empresa),'monto'), adeudo: sum(adeudosPend.filter(r=>r.empresa===empresa),'monto')}));
-  drawBar('chartEmpresa', porEmpresa.map(x=>x.empresa), [
-    {label:'Cobrado', data:porEmpresa.map(x=>x.cobrado), backgroundColor:COLORS.green},
-    {label:'Adeudo', data:porEmpresa.map(x=>x.adeudo), backgroundColor:COLORS.red}
+function renderTable(rows) {
+  $('tableSummary').textContent = `${number(rows.length)} registros encontrados`;
+  $('tableBody').innerHTML = rows.slice(0, 1000).map(r => `
+    <tr>
+      <td><span class="badge ${r.tipo === 'COBRADO' ? 'cobrado' : 'adeudo'}">${r.tipo}</span></td>
+      <td>${r.empresa}</td>
+      <td>${r.fechaISO || '<span class="muted">Sin fecha</span>'}</td>
+      <td>${escapeHtml(r.viaje)}</td>
+      <td>${escapeHtml(r.conductor || 'Sin dato')}</td>
+      <td>${escapeHtml(r.cajero || 'Sin dato')}</td>
+      <td>${escapeHtml(r.estatus)}</td>
+      <td class="money">${money(r.monto)}</td>
+    </tr>
+  `).join('');
+}
+
+function renderChartsSafe(rows) {
+  if (!window.Chart) return;
+  try { renderCharts(rows); } catch (err) { console.error(err); setStatus(`Datos cargados, pero hubo un detalle al dibujar gráficas: ${err.message}`, 'warn'); }
+}
+function renderCharts(rows) {
+  const cobros = rows.filter(r => r.tipo === 'COBRADO');
+  const adeudos = rows.filter(isPendingDebt);
+  const empresas = ['TRT', 'SUR'].map(empresa => ({ empresa, cobrado: sum(cobros.filter(r => r.empresa === empresa)), adeudo: sum(adeudos.filter(r => r.empresa === empresa)) }));
+  drawBar('chartEmpresa', empresas.map(x => x.empresa), [
+    { label: 'Cobrado', data: empresas.map(x => x.cobrado), backgroundColor: '#16a34a' },
+    { label: 'Adeudo', data: empresas.map(x => x.adeudo), backgroundColor: '#dc2626' }
   ]);
 
-  const meses = unique(rows.map(r=>r.mes)).filter(m=>m!=='Sin fecha').sort();
+  const meses = unique(rows.map(r => r.mes).filter(m => m !== 'Sin fecha'));
   drawLine('chartTendencia', meses, [
-    {label:'Cobrado', data:meses.map(m=>sum(cobros.filter(r=>r.mes===m),'monto')), borderColor:COLORS.green, backgroundColor:'rgba(22,163,74,.12)', tension:.35, fill:true},
-    {label:'Adeudo', data:meses.map(m=>sum(adeudosPend.filter(r=>r.mes===m),'monto')), borderColor:COLORS.red, backgroundColor:'rgba(220,38,38,.12)', tension:.35, fill:true}
+    { label: 'Cobrado', data: meses.map(m => sum(cobros.filter(r => r.mes === m))), borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,.14)', fill: true, tension: .35 },
+    { label: 'Adeudo', data: meses.map(m => sum(adeudos.filter(r => r.mes === m))), borderColor: '#dc2626', backgroundColor: 'rgba(220,38,38,.14)', fill: true, tension: .35 }
   ]);
 
   const cajeros = topGroup(cobros, 'cajero', 12);
-  drawBar('chartCajeros', cajeros.map(x=>shortName(x.name)), [{label:'Cobrado', data:cajeros.map(x=>x.total), backgroundColor:palette(cajeros.length)}], true);
+  drawBar('chartCajeros', cajeros.map(x => shortLabel(x.name)), [{ label: 'Cobrado', data: cajeros.map(x => x.total), backgroundColor: makePalette(cajeros.length) }], true);
 
-  const conductores = topGroup(adeudosPend, 'conductor', 12);
-  drawBar('chartConductores', conductores.map(x=>shortName(x.name)), [{label:'Adeudo', data:conductores.map(x=>x.total), backgroundColor:palette(conductores.length, true)}], true);
+  const conductores = topGroup(adeudos, 'conductor', 12);
+  drawBar('chartConductores', conductores.map(x => shortLabel(x.name)), [{ label: 'Adeudo', data: conductores.map(x => x.total), backgroundColor: makePalette(conductores.length).reverse() }], true);
 
-  const estatus = topGroup(rows.filter(r=>r.tipo==='ADEUDO'), 'estatus', 8);
-  drawDoughnut('chartEstatus', estatus.map(x=>x.name), estatus.map(x=>x.total), palette(estatus.length));
-
-  const buckets = bucketAging(adeudosPend);
-  drawBar('chartAntiguedad', buckets.map(x=>x.name), [{label:'Adeudo', data:buckets.map(x=>x.total), backgroundColor:[COLORS.green,COLORS.yellow,COLORS.orange,COLORS.red]}]);
+  const estatus = topGroup(rows.filter(r => r.tipo === 'ADEUDO'), 'estatus', 8);
+  drawDoughnut('chartEstatus', estatus.map(x => shortLabel(x.name)), estatus.map(x => x.total), makePalette(estatus.length));
 }
-function renderTable(rows){
-  $('tableSummary').textContent = `${num(rows.length)} registros encontrados`;
-  $('tableBody').innerHTML = rows.slice(0, 800).map(r => `
-    <tr>
-      <td><span class="badge ${r.tipo==='COBRADO'?'cobrado':'adeudo'}">${r.tipo}</span></td>
-      <td>${r.empresa}</td><td>${r.fechaISO || '<span class="muted">Sin fecha</span>'}</td><td>${escapeHtml(r.viaje)}</td>
-      <td>${escapeHtml(r.conductor)}</td><td>${escapeHtml(r.cajero || 'Sin dato')}</td><td>${escapeHtml(r.estatus)}</td><td class="money">${money(r.monto)}</td>
-    </tr>`).join('');
+function clearVisuals() {
+  Object.values(charts).forEach(c => c && c.destroy && c.destroy());
+  charts = {};
+  $('tableBody').innerHTML = '';
 }
-function isCobradoStatus(v){return normalizeText(v).includes('cobrado') || normalizeText(v).includes('informativo') && parseAmount(v)===0;}
-function sum(rows, key){return rows.reduce((a,r)=>a + Number(r[key]||0), 0);}
-function topGroup(rows, key, limit){
+function drawBar(id, labels, datasets, horizontal = false) {
+  drawChart(id, { type: 'bar', data: { labels, datasets }, options: chartOptions(horizontal) });
+}
+function drawLine(id, labels, datasets) {
+  drawChart(id, { type: 'line', data: { labels, datasets }, options: chartOptions(false) });
+}
+function drawDoughnut(id, labels, data, colors) {
+  drawChart(id, { type: 'doughnut', data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: c => `${c.label}: ${money(c.raw)}` } } } } });
+}
+function drawChart(id, config) {
+  const canvas = $(id);
+  if (!canvas) return;
+  if (charts[id]) charts[id].destroy();
+  charts[id] = new Chart(canvas, config);
+}
+function chartOptions(horizontal) {
+  return { responsive: true, maintainAspectRatio: false, indexAxis: horizontal ? 'y' : 'x', plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: c => `${c.dataset.label}: ${money(c.raw)}` } } }, scales: { x: { grid: { display: false }, ticks: { autoSkip: false, maxRotation: horizontal ? 0 : 35 } }, y: { beginAtZero: true, ticks: { callback: v => horizontal ? v : money(v) } } } };
+}
+function sum(rows) { return rows.reduce((acc, r) => acc + Number(r.monto || 0), 0); }
+function topGroup(rows, key, limit) {
   const map = new Map();
-  rows.forEach(r=>{const k=r[key]||'Sin dato'; map.set(k,(map.get(k)||0)+r.monto);});
-  return [...map.entries()].map(([name,total])=>({name,total})).sort((a,b)=>b.total-a.total).slice(0,limit);
+  rows.forEach(r => { const name = r[key] || 'Sin dato'; map.set(name, (map.get(name) || 0) + Number(r.monto || 0)); });
+  return [...map.entries()].map(([name,total]) => ({ name, total })).sort((a,b) => b.total - a.total).slice(0, limit);
 }
-function bucketAging(rows){
-  const now = new Date(); const buckets = [{name:'0-7 días', total:0},{name:'8-15 días', total:0},{name:'16-30 días', total:0},{name:'30+ días', total:0}];
-  rows.forEach(r=>{const days = r.fecha ? Math.floor((now-r.fecha)/86400000) : 999; const i = days<=7?0:days<=15?1:days<=30?2:3; buckets[i].total += r.monto;});
-  return buckets;
+function makePalette(n) { return Array.from({ length: n }, (_, i) => COLORS[i % COLORS.length]); }
+function shortLabel(v) { return String(v || 'Sin dato').replace(/^\d+\s+/, '').slice(0, 34); }
+function escapeHtml(v) { return String(v ?? '').replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m])); }
+function exportCsv() {
+  const headers = ['Tipo','Empresa','Fecha','Viaje','Conductor','Cajero/Preceptor','Estatus','Monto'];
+  const rows = currentRows.map(r => [r.tipo, r.empresa, r.fechaISO, r.viaje, r.conductor, r.cajero, r.estatus, r.monto]);
+  const csv = [headers, ...rows].map(row => row.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'reporte-ava.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
-function drawBar(id, labels, datasets, horizontal=false){
-  drawChart(id, {type:'bar', data:{labels,datasets}, options:baseOptions(horizontal)});
-}
-function drawLine(id, labels, datasets){
-  drawChart(id, {type:'line', data:{labels,datasets}, options:baseOptions(false)});
-}
-function drawDoughnut(id, labels, data, colors){
-  drawChart(id, {type:'doughnut', data:{labels,datasets:[{data, backgroundColor:colors, borderWidth:0}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}, tooltip:{callbacks:{label:c=>`${c.label}: ${money(c.raw)}`}}}});
-}
-function drawChart(id, config){
-  if(charts[id]) charts[id].destroy();
-  charts[id] = new Chart($(id), config);
-}
-function baseOptions(horizontal){
-  return {responsive:true, maintainAspectRatio:false, indexAxis: horizontal?'y':'x', plugins:{legend:{position:'bottom'}, tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${money(c.raw)}`}}}, scales:{x:{grid:{display:false}, ticks:{autoSkip:false, maxRotation: horizontal?0:35}}, y:{beginAtZero:true, ticks:{callback:v=>money(v)}}}};
-}
-function palette(n, warm=false){
-  const base = warm ? [COLORS.red,COLORS.orange,COLORS.pink,COLORS.purple,COLORS.yellow,COLORS.dark,COLORS.blue,COLORS.cyan] : [COLORS.blue,COLORS.green,COLORS.purple,COLORS.orange,COLORS.cyan,COLORS.pink,COLORS.yellow,COLORS.dark];
-  return Array.from({length:n},(_,i)=>base[i%base.length]);
-}
-function shortName(name){return String(name||'Sin dato').replace(/^\d+\s+/, '').slice(0,34);}
-function normalizeText(v){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
-function escapeHtml(v){return String(v??'').replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
-function setStatus(text, type=''){ $('statusBox').textContent = text; $('statusBox').className = `status-card ${type}`; }
-function exportCsv(){
-  const headers = ['Tipo','Empresa','Fecha','Viaje','Conductor','Cajero','Estatus','Monto'];
-  const rows = [...document.querySelectorAll('#tableBody tr')].map(tr => [...tr.children].map(td => td.innerText.replace(/\n/g,' ').trim()));
-  const csv = [headers, ...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'reporte-ava.csv'; a.click(); URL.revokeObjectURL(a.href);
-}
-['filterEmpresa','filterTipo','filterDesde','filterHasta','filterCajero','filterConductor','searchBox'].forEach(id=>$(id).addEventListener('input', applyFilters));
-$('btnRefresh').addEventListener('click', loadData);
-$('btnExportCsv').addEventListener('click', exportCsv);
-loadData().catch(err => setStatus(`Error al cargar datos: ${err.message}. Verifica que la implementación de Apps Script esté publicada para cualquier usuario.`, 'error'));
+
+window.addEventListener('DOMContentLoaded', () => {
+  ['empresaSelect','tipoSelect','desdeInput','hastaInput','cajeroSelect','conductorSelect','searchInput'].forEach(id => $(id).addEventListener('input', applyFilters));
+  $('btnApply').addEventListener('click', applyFilters);
+  $('btnRefresh').addEventListener('click', loadData);
+  $('btnExportCsv').addEventListener('click', exportCsv);
+  loadData();
+});

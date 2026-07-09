@@ -1,43 +1,23 @@
-# Centro de Control AVA
+# Dashboard AVA
 
-Dashboard estático para GitHub Pages conectado a Google Apps Script.
+Proyecto listo para GitHub Pages.
 
 ## Hojas esperadas
 
-- `TRT` y `SUR`: información cobrada.
-- `AVATRT` y `AVASUR`: información de adeudos / por cobrar.
+- TRT: cobros TRT
+- SUR: cobros SUR
+- AVATRT: adeudos TRT
+- AVASUR: adeudos SUR
 
-## Funciones incluidas
+El archivo `app.js` ya está conectado a tu Apps Script.
 
-- KPIs de total cobrado, total adeudo, recuperación, conductores con adeudo y promedio.
-- Filtros por empresa, tipo, periodo, cajero y conductor.
-- Gráficas de colores con Chart.js:
-  - Cobrado vs adeudo por empresa.
-  - Tendencia mensual.
-  - Cajeros con mayor cobro AVA.
-  - Conductores con mayor adeudo.
-  - Estatus de adeudos.
-  - Antigüedad de adeudos.
-- Tabla con búsqueda.
-- Exportación CSV.
+## Subir a GitHub
 
-## Publicar en GitHub Pages
+1. Sube `index.html`, `styles.css`, `app.js` y `README.md` al repositorio.
+2. Ve a Settings > Pages.
+3. Selecciona Deploy from branch, rama main, carpeta /root.
+4. Guarda y abre el enlace publicado.
 
-1. Crea un repositorio en GitHub.
-2. Sube `index.html`, `styles.css` y `app.js`.
-3. Entra a **Settings > Pages**.
-4. Selecciona **Deploy from branch**.
-5. Elige rama `main` y carpeta `/root`.
-6. Guarda y espera el enlace público.
+## Corrección incluida
 
-## Cambiar la URL de Apps Script
-
-En `app.js`, modifica:
-
-```js
-const API_URL = 'https://script.google.com/macros/s/AKfycbxpX9FNMZZDL72L76vS4keCiWC3xPb79_cMkpcBk0_AqktKHizk7j5A6r53brRN9y9d/exec';
-```
-
-## Nota
-
-El dashboard usa la acción `?accion=datos&hoja=NOMBRE_HOJA`. Si tu Apps Script ya tiene la versión anterior que te pasé, debe funcionar. Si cambias nombres de columnas, el dashboard intenta detectar variantes comunes como `Nombre Cajero`, `Cajero`, `Por Cobrar`, `Costo`, `Fecha Corrida`, `Fecha del Viaje`, etc.
+Esta versión carga las pestañas una por una con tiempo límite. Si una falla, no deja la pantalla cargando eternamente; muestra la información disponible y un aviso.
