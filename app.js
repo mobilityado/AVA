@@ -1,388 +1,223 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbxpX9FNMZZDL72L76vS4keCiWC3xPb79_cMkpcBk0_AqktKHizk7j5A6r53brRN9y9d/exec';
-
-const state = {
-  rawReporte: [],
-  reporte: [],
-  charts: {}
+const HOJAS_COBRO = ['TRT', 'SUR'];
+const HOJAS_ADEUDO = ['AVATRT', 'AVASUR'];
+const COLORS = {
+  green: '#16a34a', red: '#dc2626', blue: '#2563eb', orange: '#f97316', purple: '#7c3aed', cyan: '#0891b2', yellow: '#eab308', dark: '#1f2937', pink: '#db2777'
 };
+let allRows = [];
+let charts = {};
+const $ = id => document.getElementById(id);
+const money = n => Number(n || 0).toLocaleString('es-MX', { style:'currency', currency:'MXN' });
+const num = n => Number(n || 0).toLocaleString('es-MX');
 
-const $ = (id) => document.getElementById(id);
-const money = (value) => Number(value || 0).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
-const number = (value) => Number(value || 0).toLocaleString('es-MX');
-
-function buildParams(accion) {
-  const params = new URLSearchParams({ accion });
-  const hoja = $('hojaSelect').value;
-  const desde = $('desdeInput').value;
-  const hasta = $('hastaInput').value;
-
-  if (hoja) params.set('hoja', hoja);
-  if (desde) params.set('desde', desde);
-  if (hasta) params.set('hasta', hasta);
-
-  return params.toString();
-}
-
-async function api(accion) {
-  const url = `${API_URL}?${buildParams(accion)}`;
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`Error HTTP ${response.status}`);
-  const data = await response.json();
-  if (data.error) throw new Error(data.mensaje || 'Error al consultar información');
-  return data;
-}
-
-async function loadDashboard() {
-  showToast('Consultando información...');
-
-  try {
-    const reporte = await api('reporte');
-    state.rawReporte = reporte.datos || [];
-
-    populateCajeros();
-    applyClientFilters();
-
-    $('lastUpdate').textContent = `Última actualización: ${new Date().toLocaleString('es-MX')}`;
-    showToast('Dashboard actualizado correctamente');
-  } catch (error) {
-    console.error(error);
-    showToast(`No se pudo cargar la información: ${error.message}`);
+function getField(row, names){
+  for(const name of names){
+    const key = Object.keys(row).find(k => normalizeKey(k) === normalizeKey(name));
+    if(key && row[key] !== undefined && row[key] !== null && String(row[key]).trim() !== '') return row[key];
   }
-}
-
-function applyClientFilters() {
-  const cajero = $('cajeroSelect').value;
-
-  state.reporte = state.rawReporte.filter(row => {
-    if (!cajero) return true;
-    return getCajero(row) === cajero;
-  });
-
-  renderKpis();
-  renderCharts();
-  renderTable(state.reporte);
-}
-
-function populateCajeros() {
-  const select = $('cajeroSelect');
-  const selected = select.value;
-  const cajeros = [...new Set(
-    state.rawReporte
-      .map(row => getCajero(row))
-      .filter(Boolean)
-  )].sort((a, b) => a.localeCompare(b, 'es'));
-
-  select.innerHTML = '<option value="">Todos</option>' +
-    cajeros.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
-
-  if (cajeros.includes(selected)) {
-    select.value = selected;
-  }
-
-  const label = document.querySelector('label[for="cajeroSelect"]');
-  if (label) label.textContent = `Cajero (${cajeros.length})`;
-}
-
-function renderKpis() {
-  const rows = state.reporte;
-  const totalMonto = rows.reduce((sum, row) => sum + getMonto(row), 0);
-  const totalPasajeros = rows.reduce((sum, row) => sum + getNumero(row, ['Numero de Pasajeros', 'Número de Pasajeros', 'Pasajeros']), 0);
-
-  $('kpiRegistros').textContent = number(rows.length);
-  $('kpiMonto').textContent = money(totalMonto);
-  $('kpiPasajeros').textContent = number(totalPasajeros);
-  $('kpiPromedio').textContent = money(rows.length ? totalMonto / rows.length : 0);
-}
-
-function renderCharts() {
-  renderLineChart('chartTendencia', buildTendencia());
-  renderBarChart('chartHojas', buildAgrupado(['hoja'], 'Monto recuperado'), false);
-  renderBarChart('chartConductores', buildAgrupado(['Conductor', 'Nombre Conductor'], 'Monto por conductor', 10, 18), true);
-  renderBarChart('chartCajeros', buildAgrupadoCajeros('Monto cobrado por cajero', 20), true);
-}
-
-function buildTendencia() {
-  const mapa = new Map();
-
-  state.reporte.forEach(row => {
-    const fecha = formatDate(getValue(row, ['Fecha del Viaje', 'Fecha Viaje', 'Fecha']));
-    if (!fecha) return;
-    mapa.set(fecha, (mapa.get(fecha) || 0) + getMonto(row));
-  });
-
-  const data = [...mapa.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-  return {
-    labels: data.map(item => item[0]),
-    data: data.map(item => item[1]),
-    label: 'Monto recuperado'
-  };
-}
-
-function buildAgrupado(campos, label, limite = 15, maxText = 18) {
-  const mapa = new Map();
-
-  state.reporte.forEach(row => {
-    const nombre = getValue(row, campos) || 'SIN DATO';
-    mapa.set(nombre, (mapa.get(nombre) || 0) + getMonto(row));
-  });
-
-  const ordenado = [...mapa.entries()]
-    .map(([nombre, monto]) => ({ nombre, monto }))
-    .sort((a, b) => b.monto - a.monto)
-    .slice(0, limite);
-
-  return {
-    labels: ordenado.map(x => recortarTexto(x.nombre, maxText)),
-    data: ordenado.map(x => x.monto),
-    label
-  };
-}
-
-function buildAgrupadoCajeros(label, limite = 20) {
-  const mapa = new Map();
-
-  state.reporte.forEach(row => {
-    const nombre = getCajero(row) || 'SIN DATO';
-    mapa.set(nombre, (mapa.get(nombre) || 0) + getMonto(row));
-  });
-
-  const ordenado = [...mapa.entries()]
-    .map(([nombre, monto]) => ({ nombre, monto }))
-    .sort((a, b) => b.monto - a.monto)
-    .slice(0, limite);
-
-  return {
-    labels: ordenado.map(x => x.nombre),
-    data: ordenado.map(x => x.monto),
-    label
-  };
-}
-
-function renderLineChart(canvasId, config) {
-  destroyChart(canvasId);
-  state.charts[canvasId] = new Chart($(canvasId), {
-    type: 'line',
-    data: {
-      labels: config.labels,
-      datasets: [{
-        label: config.label,
-        data: config.data,
-        tension: .32,
-        fill: true
-      }]
-    },
-    options: chartOptions()
-  });
-}
-
-function renderBarChart(canvasId, config, horizontal = false) {
-  destroyChart(canvasId);
-  state.charts[canvasId] = new Chart($(canvasId), {
-    type: 'bar',
-    data: {
-      labels: config.labels,
-      datasets: [{ label: config.label, data: config.data }]
-    },
-    options: chartOptions(horizontal)
-  });
-}
-
-function chartOptions(horizontal = false) {
-  return {
-    indexAxis: horizontal ? 'y' : 'x',
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        callbacks: {
-          label: (ctx) => money(ctx.raw)
-        }
-      }
-    },
-    scales: {
-      x: {
-        ticks: {
-          autoSkip: true,
-          maxRotation: 0,
-          callback: function(value) {
-            return horizontal ? money(value) : this.getLabelForValue(value);
-          }
-        }
-      },
-      y: {
-        ticks: {
-          callback: function(value) {
-            return horizontal ? this.getLabelForValue(value) : money(value);
-          }
-        }
-      }
-    }
-  };
-}
-
-function destroyChart(canvasId) {
-  if (state.charts[canvasId]) state.charts[canvasId].destroy();
-}
-
-function renderTable(rows) {
-  const head = $('tableHead');
-  const body = $('tableBody');
-  head.innerHTML = '';
-  body.innerHTML = '';
-
-  if (!rows.length) {
-    body.innerHTML = '<tr><td>No hay registros para mostrar</td></tr>';
-    return;
-  }
-
-  const headers = Object.keys(rows[0]).filter(h => h !== 'montoRecuperadoNumero');
-  head.innerHTML = `<tr>${headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}</tr>`;
-
-  body.innerHTML = rows.map(row => `
-    <tr>
-      ${headers.map(h => `<td>${formatCell(h, row[h])}</td>`).join('')}
-    </tr>
-  `).join('');
-}
-
-function formatCell(header, value) {
-  if (header.toLowerCase().includes('monto')) return money(value);
-  return escapeHtml(value ?? '');
-}
-
-function filterTable() {
-  const text = $('searchInput').value.toLowerCase().trim();
-  if (!text) return renderTable(state.reporte);
-
-  const filtered = state.reporte.filter(row =>
-    Object.values(row).some(value => String(value ?? '').toLowerCase().includes(text))
-  );
-
-  renderTable(filtered);
-}
-
-function exportCsv() {
-  if (!state.reporte.length) return showToast('No hay datos para exportar');
-
-  const headers = Object.keys(state.reporte[0]).filter(h => h !== 'montoRecuperadoNumero');
-  const lines = [headers.join(',')];
-
-  state.reporte.forEach(row => {
-    const line = headers.map(h => `"${String(row[h] ?? '').replace(/"/g, '""')}"`).join(',');
-    lines.push(line);
-  });
-
-  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `reporte-ava-${new Date().toISOString().slice(0,10)}.csv`;
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
-
-function normalizeKey(text) {
-  return String(text || '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]/g, '');
-}
-
-function findValueByNormalizedKeys(row, possibleKeys) {
-  const normalizedRow = Object.keys(row).reduce((acc, key) => {
-    acc[normalizeKey(key)] = key;
-    return acc;
-  }, {});
-
-  for (const key of possibleKeys) {
-    const realKey = normalizedRow[normalizeKey(key)];
-    if (realKey && row[realKey] !== undefined && row[realKey] !== null && String(row[realKey]).trim() !== '') {
-      return String(row[realKey]).trim();
-    }
-  }
-
   return '';
 }
+function normalizeKey(v){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');}
+function parseAmount(v){
+  if(typeof v === 'number') return v;
+  return Number(String(v||'').replace(/\$/g,'').replace(/,/g,'').replace(/%/g,'').trim()) || 0;
+}
+function parseDate(value){
+  if(!value) return null;
+  if(value instanceof Date) return value;
+  const s = String(value).trim();
+  if(/^\d+(\.\d+)?$/.test(s)){
+    const serial = Number(s);
+    if(serial > 20000) return new Date(Math.round((serial - 25569) * 86400 * 1000));
+  }
+  let clean = s.replace('a. m.','AM').replace('p. m.','PM').replace('a.m.','AM').replace('p.m.','PM');
+  let d = new Date(clean);
+  if(!isNaN(d)) return d;
+  const m = clean.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?)?/i);
+  if(m){
+    let h = Number(m[4]||0); const min = Number(m[5]||0); const sec = Number(m[6]||0); const ap = (m[7]||'').toUpperCase();
+    if(ap === 'PM' && h < 12) h += 12; if(ap === 'AM' && h === 12) h = 0;
+    return new Date(Number(m[3]), Number(m[2])-1, Number(m[1]), h, min, sec);
+  }
+  return null;
+}
+function isoDate(d){ return d ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}` : ''; }
+function monthKey(d){ return d ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` : 'Sin fecha'; }
+function empresaFromSheet(sheet){ return String(sheet||'').toUpperCase().includes('SUR') ? 'SUR' : 'TRT'; }
 
-function getCajero(row) {
-  const direct = findValueByNormalizedKeys(row, [
-    'Nombre Cajero',
-    'Cajero',
-    'Cajero Cobro',
-    'Nombre del Cajero',
-    'Cajero que cobro',
-    'Cajero que cobró',
-    'Usuario Cobro',
-    'Usuario Cobró'
+async function fetchSheet(sheet){
+  const url = `${API_URL}?accion=datos&hoja=${encodeURIComponent(sheet)}`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error(`No se pudo leer ${sheet}`);
+  const data = await res.json();
+  return data.datos || data.data || [];
+}
+async function loadData(){
+  setStatus('Cargando información desde Google Sheet...');
+  const sheets = [...HOJAS_COBRO, ...HOJAS_ADEUDO];
+  const responses = await Promise.all(sheets.map(async sheet => ({sheet, rows: await fetchSheet(sheet)})));
+  allRows = responses.flatMap(({sheet, rows}) => rows.map(row => normalizeRow(row, sheet))).filter(r => r.monto > 0 || r.tipo === 'ADEUDO');
+  populateFilters();
+  applyFilters();
+  setStatus(`Información actualizada: ${num(allRows.length)} registros cargados.`, 'ok');
+}
+function normalizeRow(row, sheet){
+  const tipo = HOJAS_ADEUDO.includes(sheet) ? 'ADEUDO' : 'COBRADO';
+  const fechaRaw = tipo === 'COBRADO' ? getField(row, ['Fecha del Viaje','Fecha Viaje','Fecha']) : getField(row, ['Fecha Corrida','Fecha Sanción','Fecha Recepción Reporte','Fecha Cobro']);
+  const fecha = parseDate(fechaRaw);
+  const conductor = getField(row, ['Conductor','Operador']);
+  const cajero = tipo === 'COBRADO' ? getField(row, ['Nombre Cajero','Cajero','Cajero Cobro']) : getField(row, ['Preceptor','Analista','Nombre Cajero','Cajero']);
+  const monto = tipo === 'COBRADO' ? parseAmount(getField(row, ['Monto Recuperado','Monto','Importe'])) : parseAmount(getField(row, ['Por Cobrar','Costo','Monto','Importe']));
+  const estatus = tipo === 'COBRADO' ? 'Cobrado' : String(getField(row, ['Estatus','Sanción','Status']) || 'Pendiente');
+  return {
+    tipo,
+    empresa: empresaFromSheet(sheet),
+    sheet,
+    fecha,
+    fechaISO: isoDate(fecha),
+    mes: monthKey(fecha),
+    viaje: getField(row, ['Viaje','Id Viaje','ID Viaje','Reporte']),
+    autobus: getField(row, ['Autobus','Autobús']),
+    conductor,
+    cajero,
+    estatus,
+    monto,
+    pasajeros: parseAmount(getField(row, ['Numero de Pasajeros','Número de Pasajeros','Pasajeros'])),
+    raw: row
+  };
+}
+function populateFilters(){
+  const cajeros = unique(allRows.map(r=>r.cajero).filter(Boolean));
+  const conductores = unique(allRows.map(r=>r.conductor).filter(Boolean));
+  fillSelect($('filterCajero'), cajeros, 'TODOS', 'Todos');
+  fillSelect($('filterConductor'), conductores, 'TODOS', 'Todos');
+}
+function unique(arr){return [...new Set(arr.map(x=>String(x).trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));}
+function fillSelect(select, values, allValue, allText){
+  const current = select.value || allValue;
+  select.innerHTML = `<option value="${allValue}">${allText}</option>` + values.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+  select.value = [...select.options].some(o=>o.value===current) ? current : allValue;
+}
+function applyFilters(){
+  const empresa = $('filterEmpresa').value;
+  const tipo = $('filterTipo').value;
+  const desde = $('filterDesde').value;
+  const hasta = $('filterHasta').value;
+  const cajero = $('filterCajero').value;
+  const conductor = $('filterConductor').value;
+  const search = normalizeText($('searchBox').value);
+  const rows = allRows.filter(r => {
+    if(empresa !== 'TODAS' && r.empresa !== empresa) return false;
+    if(tipo !== 'AMBOS' && r.tipo !== tipo) return false;
+    if(desde && r.fechaISO < desde) return false;
+    if(hasta && r.fechaISO > hasta) return false;
+    if(cajero !== 'TODOS' && r.cajero !== cajero) return false;
+    if(conductor !== 'TODOS' && r.conductor !== conductor) return false;
+    if(search){
+      const hay = normalizeText([r.tipo,r.empresa,r.fechaISO,r.viaje,r.conductor,r.cajero,r.estatus,r.monto].join(' '));
+      if(!hay.includes(search)) return false;
+    }
+    return true;
+  });
+  renderKpis(rows);
+  renderCharts(rows);
+  renderTable(rows);
+}
+function renderKpis(rows){
+  const cobros = rows.filter(r=>r.tipo==='COBRADO');
+  const adeudos = rows.filter(r=>r.tipo==='ADEUDO' && !isCobradoStatus(r.estatus));
+  const totalCobrado = sum(cobros, 'monto');
+  const totalAdeudo = sum(adeudos, 'monto');
+  const recuperacion = totalCobrado + totalAdeudo ? (totalCobrado / (totalCobrado + totalAdeudo)) * 100 : 0;
+  $('kpiCobrado').textContent = money(totalCobrado);
+  $('kpiCobros').textContent = `${num(cobros.length)} movimientos`;
+  $('kpiAdeudo').textContent = money(totalAdeudo);
+  $('kpiAdeudos').textContent = `${num(adeudos.length)} pendientes`;
+  $('kpiRecuperacion').textContent = `${recuperacion.toFixed(1)}%`;
+  $('kpiConductoresAdeudo').textContent = num(unique(adeudos.map(r=>r.conductor)).length);
+  $('kpiEventos').textContent = num(sum(rows, 'pasajeros') || rows.length);
+  $('kpiPromedio').textContent = money(cobros.length ? totalCobrado / cobros.length : 0);
+}
+function renderCharts(rows){
+  const cobros = rows.filter(r=>r.tipo==='COBRADO');
+  const adeudosPend = rows.filter(r=>r.tipo==='ADEUDO' && !isCobradoStatus(r.estatus));
+  const porEmpresa = ['TRT','SUR'].map(empresa => ({empresa, cobrado: sum(cobros.filter(r=>r.empresa===empresa),'monto'), adeudo: sum(adeudosPend.filter(r=>r.empresa===empresa),'monto')}));
+  drawBar('chartEmpresa', porEmpresa.map(x=>x.empresa), [
+    {label:'Cobrado', data:porEmpresa.map(x=>x.cobrado), backgroundColor:COLORS.green},
+    {label:'Adeudo', data:porEmpresa.map(x=>x.adeudo), backgroundColor:COLORS.red}
   ]);
 
-  if (direct) return direct;
+  const meses = unique(rows.map(r=>r.mes)).filter(m=>m!=='Sin fecha').sort();
+  drawLine('chartTendencia', meses, [
+    {label:'Cobrado', data:meses.map(m=>sum(cobros.filter(r=>r.mes===m),'monto')), borderColor:COLORS.green, backgroundColor:'rgba(22,163,74,.12)', tension:.35, fill:true},
+    {label:'Adeudo', data:meses.map(m=>sum(adeudosPend.filter(r=>r.mes===m),'monto')), borderColor:COLORS.red, backgroundColor:'rgba(220,38,38,.12)', tension:.35, fill:true}
+  ]);
 
-  const cajeroKey = Object.keys(row).find(key => {
-    const clean = normalizeKey(key);
-    return clean.includes('cajero') || clean.includes('usuariocobro');
-  });
+  const cajeros = topGroup(cobros, 'cajero', 12);
+  drawBar('chartCajeros', cajeros.map(x=>shortName(x.name)), [{label:'Cobrado', data:cajeros.map(x=>x.total), backgroundColor:palette(cajeros.length)}], true);
 
-  return cajeroKey ? String(row[cajeroKey] || '').trim() : '';
+  const conductores = topGroup(adeudosPend, 'conductor', 12);
+  drawBar('chartConductores', conductores.map(x=>shortName(x.name)), [{label:'Adeudo', data:conductores.map(x=>x.total), backgroundColor:palette(conductores.length, true)}], true);
+
+  const estatus = topGroup(rows.filter(r=>r.tipo==='ADEUDO'), 'estatus', 8);
+  drawDoughnut('chartEstatus', estatus.map(x=>x.name), estatus.map(x=>x.total), palette(estatus.length));
+
+  const buckets = bucketAging(adeudosPend);
+  drawBar('chartAntiguedad', buckets.map(x=>x.name), [{label:'Adeudo', data:buckets.map(x=>x.total), backgroundColor:[COLORS.green,COLORS.yellow,COLORS.orange,COLORS.red]}]);
 }
-
-function getValue(row, keys) {
-  for (const key of keys) {
-    if (row[key] !== undefined && row[key] !== null && String(row[key]).trim() !== '') {
-      return String(row[key]).trim();
-    }
-  }
-  return '';
+function renderTable(rows){
+  $('tableSummary').textContent = `${num(rows.length)} registros encontrados`;
+  $('tableBody').innerHTML = rows.slice(0, 800).map(r => `
+    <tr>
+      <td><span class="badge ${r.tipo==='COBRADO'?'cobrado':'adeudo'}">${r.tipo}</span></td>
+      <td>${r.empresa}</td><td>${r.fechaISO || '<span class="muted">Sin fecha</span>'}</td><td>${escapeHtml(r.viaje)}</td>
+      <td>${escapeHtml(r.conductor)}</td><td>${escapeHtml(r.cajero || 'Sin dato')}</td><td>${escapeHtml(r.estatus)}</td><td class="money">${money(r.monto)}</td>
+    </tr>`).join('');
 }
-
-function getMonto(row) {
-  if (row.montoRecuperadoNumero !== undefined) return Number(row.montoRecuperadoNumero) || 0;
-  const value = getValue(row, ['Monto Recuperado', 'Monto', 'Importe']);
-  return Number(String(value).replace('$', '').replace(/,/g, '').trim()) || 0;
+function isCobradoStatus(v){return normalizeText(v).includes('cobrado') || normalizeText(v).includes('informativo') && parseAmount(v)===0;}
+function sum(rows, key){return rows.reduce((a,r)=>a + Number(r[key]||0), 0);}
+function topGroup(rows, key, limit){
+  const map = new Map();
+  rows.forEach(r=>{const k=r[key]||'Sin dato'; map.set(k,(map.get(k)||0)+r.monto);});
+  return [...map.entries()].map(([name,total])=>({name,total})).sort((a,b)=>b.total-a.total).slice(0,limit);
 }
-
-function getNumero(row, keys) {
-  return Number(String(getValue(row, keys)).replace(/,/g, '').trim()) || 0;
+function bucketAging(rows){
+  const now = new Date(); const buckets = [{name:'0-7 días', total:0},{name:'8-15 días', total:0},{name:'16-30 días', total:0},{name:'30+ días', total:0}];
+  rows.forEach(r=>{const days = r.fecha ? Math.floor((now-r.fecha)/86400000) : 999; const i = days<=7?0:days<=15?1:days<=30?2:3; buckets[i].total += r.monto;});
+  return buckets;
 }
-
-function formatDate(value) {
-  const fecha = new Date(value);
-  if (isNaN(fecha)) return null;
-  const yyyy = fecha.getFullYear();
-  const mm = String(fecha.getMonth() + 1).padStart(2, '0');
-  const dd = String(fecha.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
+function drawBar(id, labels, datasets, horizontal=false){
+  drawChart(id, {type:'bar', data:{labels,datasets}, options:baseOptions(horizontal)});
 }
-
-function recortarTexto(text, max) {
-  text = String(text || 'SIN DATO');
-  return text.length > max ? `${text.slice(0, max)}...` : text;
+function drawLine(id, labels, datasets){
+  drawChart(id, {type:'line', data:{labels,datasets}, options:baseOptions(false)});
 }
-
-function escapeHtml(value) {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+function drawDoughnut(id, labels, data, colors){
+  drawChart(id, {type:'doughnut', data:{labels,datasets:[{data, backgroundColor:colors, borderWidth:0}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}, tooltip:{callbacks:{label:c=>`${c.label}: ${money(c.raw)}`}}}});
 }
-
-function showToast(message) {
-  const toast = $('toast');
-  toast.textContent = message;
-  toast.classList.remove('hidden');
-  clearTimeout(showToast.timer);
-  showToast.timer = setTimeout(() => toast.classList.add('hidden'), 3200);
+function drawChart(id, config){
+  if(charts[id]) charts[id].destroy();
+  charts[id] = new Chart($(id), config);
 }
-
-$('btnApply').addEventListener('click', loadDashboard);
-$('btnRefresh').addEventListener('click', loadDashboard);
+function baseOptions(horizontal){
+  return {responsive:true, maintainAspectRatio:false, indexAxis: horizontal?'y':'x', plugins:{legend:{position:'bottom'}, tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${money(c.raw)}`}}}, scales:{x:{grid:{display:false}, ticks:{autoSkip:false, maxRotation: horizontal?0:35}}, y:{beginAtZero:true, ticks:{callback:v=>money(v)}}}};
+}
+function palette(n, warm=false){
+  const base = warm ? [COLORS.red,COLORS.orange,COLORS.pink,COLORS.purple,COLORS.yellow,COLORS.dark,COLORS.blue,COLORS.cyan] : [COLORS.blue,COLORS.green,COLORS.purple,COLORS.orange,COLORS.cyan,COLORS.pink,COLORS.yellow,COLORS.dark];
+  return Array.from({length:n},(_,i)=>base[i%base.length]);
+}
+function shortName(name){return String(name||'Sin dato').replace(/^\d+\s+/, '').slice(0,34);}
+function normalizeText(v){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
+function escapeHtml(v){return String(v??'').replace(/[&<>"]/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
+function setStatus(text, type=''){ $('statusBox').textContent = text; $('statusBox').className = `status-card ${type}`; }
+function exportCsv(){
+  const headers = ['Tipo','Empresa','Fecha','Viaje','Conductor','Cajero','Estatus','Monto'];
+  const rows = [...document.querySelectorAll('#tableBody tr')].map(tr => [...tr.children].map(td => td.innerText.replace(/\n/g,' ').trim()));
+  const csv = [headers, ...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'reporte-ava.csv'; a.click(); URL.revokeObjectURL(a.href);
+}
+['filterEmpresa','filterTipo','filterDesde','filterHasta','filterCajero','filterConductor','searchBox'].forEach(id=>$(id).addEventListener('input', applyFilters));
+$('btnRefresh').addEventListener('click', loadData);
 $('btnExportCsv').addEventListener('click', exportCsv);
-$('searchInput').addEventListener('input', filterTable);
-$('cajeroSelect').addEventListener('change', applyClientFilters);
-
-loadDashboard();
+loadData().catch(err => setStatus(`Error al cargar datos: ${err.message}. Verifica que la implementación de Apps Script esté publicada para cualquier usuario.`, 'error'));

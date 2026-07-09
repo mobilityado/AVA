@@ -1,57 +1,43 @@
-# AVA Dashboard
+# Centro de Control AVA
 
-Dashboard web estático para consultar información de AVA desde Google Sheets mediante Google Apps Script.
+Dashboard estático para GitHub Pages conectado a Google Apps Script.
 
-## Archivos
+## Hojas esperadas
 
-- `index.html`: estructura del dashboard.
-- `styles.css`: diseño visual responsivo.
-- `app.js`: conexión con Apps Script, gráficas, filtros, KPIs y exportación CSV.
+- `TRT` y `SUR`: información cobrada.
+- `AVATRT` y `AVASUR`: información de adeudos / por cobrar.
 
-## API configurada
+## Funciones incluidas
 
-La URL del Apps Script ya está configurada en `app.js`:
+- KPIs de total cobrado, total adeudo, recuperación, conductores con adeudo y promedio.
+- Filtros por empresa, tipo, periodo, cajero y conductor.
+- Gráficas de colores con Chart.js:
+  - Cobrado vs adeudo por empresa.
+  - Tendencia mensual.
+  - Cajeros con mayor cobro AVA.
+  - Conductores con mayor adeudo.
+  - Estatus de adeudos.
+  - Antigüedad de adeudos.
+- Tabla con búsqueda.
+- Exportación CSV.
+
+## Publicar en GitHub Pages
+
+1. Crea un repositorio en GitHub.
+2. Sube `index.html`, `styles.css` y `app.js`.
+3. Entra a **Settings > Pages**.
+4. Selecciona **Deploy from branch**.
+5. Elige rama `main` y carpeta `/root`.
+6. Guarda y espera el enlace público.
+
+## Cambiar la URL de Apps Script
+
+En `app.js`, modifica:
 
 ```js
 const API_URL = 'https://script.google.com/macros/s/AKfycbxpX9FNMZZDL72L76vS4keCiWC3xPb79_cMkpcBk0_AqktKHizk7j5A6r53brRN9y9d/exec';
 ```
 
-## Cómo subir a GitHub Pages
-
-1. Crea un repositorio nuevo en GitHub, por ejemplo `ava-dashboard`.
-2. Sube estos archivos a la raíz del repositorio:
-   - `index.html`
-   - `styles.css`
-   - `app.js`
-   - `README.md`
-3. Entra a **Settings > Pages**.
-4. En **Build and deployment**, selecciona:
-   - Source: `Deploy from a branch`
-   - Branch: `main`
-   - Folder: `/root`
-5. Guarda los cambios.
-6. GitHub generará una URL parecida a:
-   `https://TU-USUARIO.github.io/ava-dashboard/`
-
-## Funciones incluidas
-
-- Filtro por hoja: Todas, TRT o SUR.
-- Filtro por periodo: Desde / Hasta.
-- KPIs de registros, monto recuperado, pasajeros y promedio.
-- Gráfica de tendencia diaria.
-- Gráfica por hoja.
-- Top conductores.
-- Top cajeros.
-- Tabla detallada con buscador.
-- Exportación a CSV.
-
 ## Nota
 
-Si el navegador bloquea la consulta por permisos o CORS, vuelve a revisar que el Apps Script esté publicado como aplicación web con acceso para cualquier usuario.
-
-
-## Actualización
-
-- Se quitó la leyenda visible de fuente Google Script.
-- Se agregó filtro por cajero.
-- Se agregó/actualizó la gráfica de cajeros para ver quién cobró más AVA por monto recuperado.
+El dashboard usa la acción `?accion=datos&hoja=NOMBRE_HOJA`. Si tu Apps Script ya tiene la versión anterior que te pasé, debe funcionar. Si cambias nombres de columnas, el dashboard intenta detectar variantes comunes como `Nombre Cajero`, `Cajero`, `Por Cobrar`, `Costo`, `Fecha Corrida`, `Fecha del Viaje`, etc.
