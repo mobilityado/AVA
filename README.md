@@ -1,23 +1,21 @@
-# Dashboard AVA
+# Centro de Control AVA v4
 
 Proyecto listo para GitHub Pages.
 
+## Importante
+Esta versión usa JSONP para evitar que GitHub Pages se quede cargando por bloqueo CORS de Apps Script.
+
+1. Abre Google Sheet > Extensiones > Apps Script.
+2. Reemplaza el código por el archivo `APPS_SCRIPT_ACTUALIZADO.txt`.
+3. Implementar > Administrar implementaciones > Editar > Nueva versión.
+4. Acceso: Cualquier usuario.
+5. Sube a GitHub estos archivos:
+   - index.html
+   - styles.css
+   - app.js
+
 ## Hojas esperadas
-
-- TRT: cobros TRT
-- SUR: cobros SUR
-- AVATRT: adeudos TRT
-- AVASUR: adeudos SUR
-
-El archivo `app.js` ya está conectado a tu Apps Script.
-
-## Subir a GitHub
-
-1. Sube `index.html`, `styles.css`, `app.js` y `README.md` al repositorio.
-2. Ve a Settings > Pages.
-3. Selecciona Deploy from branch, rama main, carpeta /root.
-4. Guarda y abre el enlace publicado.
-
-## Corrección incluida
-
-Esta versión carga las pestañas una por una con tiempo límite. Si una falla, no deja la pantalla cargando eternamente; muestra la información disponible y un aviso.
+- TRT: cobrado
+- SUR: cobrado
+- AVATRT: adeudos
+- AVASUR: adeudos
