@@ -1,0 +1,46 @@
+const ID_SHEET = '1wD0bEDZznFkTmcvcRu1sGpHreataA5vpU0-ce2zVMlk';
+
+function doGet(e) {
+  e = e || { parameter: {} };
+  const accion = e.parameter.accion || 'inicio';
+  try {
+    if (accion === 'inicio') return respuesta({ error:false, mensaje:'API AVA activa' });
+    if (accion === 'hojas') return obtenerHojas();
+    if (accion === 'datos') return obtenerDatos(e.parameter.hoja);
+    return respuesta({ error:true, mensaje:'Acción inválida' });
+  } catch (err) {
+    return respuesta({ error:true, mensaje:err.message });
+  }
+}
+
+function obtenerHojas() {
+  const ss = SpreadsheetApp.openById(ID_SHEET);
+  return respuesta({ error:false, hojas:ss.getSheets().map(s => s.getName()) });
+}
+
+function obtenerDatos(nombreHoja) {
+  if (!nombreHoja) throw new Error('Falta parámetro hoja');
+  const ss = SpreadsheetApp.openById(ID_SHEET);
+  const sh = ss.getSheetByName(nombreHoja);
+  if (!sh) throw new Error('No existe la hoja: ' + nombreHoja);
+  const values = sh.getDataRange().getValues();
+  if (values.length < 2) return respuesta({ error:false, total:0, datos:[] });
+  const headers = values[0].map(h => String(h).trim());
+  const datos = [];
+  for (let i = 1; i < values.length; i++) {
+    const row = values[i];
+    const obj = { hoja:nombreHoja };
+    headers.forEach((h, idx) => obj[h] = normalizar(row[idx]));
+    datos.push(obj);
+  }
+  return respuesta({ error:false, total:datos.length, datos });
+}
+
+function normalizar(v) {
+  if (v instanceof Date) return Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  return v;
+}
+
+function respuesta(data) {
+  return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
+}
