@@ -10,10 +10,40 @@ const $ = id => document.getElementById(id);
 const money = n => Number(n||0).toLocaleString('es-MX',{style:'currency',currency:'MXN'});
 const norm = s => String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
 const pick = (obj, names) => { const keys=Object.keys(obj||{}); for(const n of names){ const k=keys.find(x=>norm(x)===norm(n)); if(k && obj[k]!=='' && obj[k]!=null) return obj[k]; } for(const n of names){ const k=keys.find(x=>norm(x).includes(norm(n)) || norm(n).includes(norm(x))); if(k && obj[k]!=='' && obj[k]!=null) return obj[k]; } return ''; };
-const amountFrom = (r,tipo) => num(pick(r, tipo==='ADEUDO' ? ['Por Cobrar','Monto Adeudo','Adeudo','Saldo','Importe','Monto Recuperado'] : ['Monto Recuperado','Monto','Importe','Por Cobrar']));
+const amountFrom = (r,tipo) => num(pick(r, tipo==='ADEUDO' ? ['Por Cobrar','Total Por Cobrar','Monto Adeudo','Adeudo','Saldo','Importe','Costo','Monto Recuperado'] : ['Monto Recuperado','Monto','Importe','Por Cobrar']));
 function num(v){ if(typeof v==='number') return v; return Number(String(v||'').replace(/[$,\s]/g,'').replace(/\((.*)\)/,'-$1'))||0; }
-function dateFrom(r){ return pick(r,['Fecha del Viaje','Fecha Viaje','Fecha','Fecha Cobro','FECHA']); }
-function dateObj(v){ if(!v) return null; const d=new Date(v); return isNaN(d)?null:d; }
+function dateFrom(r){
+  return pick(r,[
+    'Fecha del Viaje','Fecha Viaje','Fecha','Fecha Cobro','FECHA',
+    'Fecha Corrida','Hora Corrida','Fecha Recepción Reporte','Fecha Recepcion Reporte','Fecha Sanción','Fecha Sancion'
+  ]);
+}
+function dateObj(v){
+  if(!v) return null;
+  if(v instanceof Date && !isNaN(v)) return v;
+  const raw=String(v).trim();
+  let d=new Date(raw);
+  if(!isNaN(d)) return d;
+
+  // Soporte para fechas de Google Sheet/Excel en español:
+  // 20/04/2026 06:30:00 a. m. | 11/02/2026 03:30:00 p. m.
+  const clean = raw
+    .replace(/\s*a\.\s*m\.?/i,' AM')
+    .replace(/\s*p\.\s*m\.?/i,' PM')
+    .replace(/\s*a\s*m\.?/i,' AM')
+    .replace(/\s*p\s*m\.?/i,' PM');
+  const m = clean.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?)?/i);
+  if(m){
+    let dd=Number(m[1]), mm=Number(m[2])-1, yy=Number(m[3]);
+    let hh=Number(m[4]||0), mi=Number(m[5]||0), ss=Number(m[6]||0);
+    const ap=(m[7]||'').toUpperCase();
+    if(ap==='PM' && hh<12) hh+=12;
+    if(ap==='AM' && hh===12) hh=0;
+    d=new Date(yy,mm,dd,hh,mi,ss);
+    if(!isNaN(d)) return d;
+  }
+  return null;
+}
 function ymd(d){ if(!d) return ''; return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function monthKey(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
 function yearKey(d){ return String(d.getFullYear()); }
