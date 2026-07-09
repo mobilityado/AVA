@@ -72,5 +72,34 @@ function renderLine(id, labels, cobrado, adeudo){
 }
 function renderDonut(id, cobrado, adeudo){
   destroy(id); const ctx=ensureChart(id); if(!ctx) return;
-  chartRefs[id]=new Chart(ctx,{type:'doughnut',data:{labels:['Cobrado','Adeudo'],datasets:[{data:[cobrado,adeudo],backgroundColor:[COLORS.teal,COLORS.red],borderWidth:5,borderColor:'#fff',hoverOffset:8}]},options:{responsive:true,maintainAspectRatio:false,cutout:'72%',plugins:{legend:{position:'bottom',labels:{usePointStyle:true,boxWidth:9,padding:18,color:'#334155',font:{weight:'700'}}},tooltip:{backgroundColor:'#0f172a',padding:12,cornerRadius:12,callbacks:{label:c=>`${c.label}: ${money(c.raw)}`}}}}});
+  const total = Number(cobrado||0) + Number(adeudo||0);
+  const rec = total ? (Number(cobrado||0) / total) * 100 : 0;
+  const greenGrad = ctx.createLinearGradient(0,0,260,260);
+  greenGrad.addColorStop(0,'#10b981'); greenGrad.addColorStop(1,'#0f766e');
+  const redGrad = ctx.createLinearGradient(0,0,260,260);
+  redGrad.addColorStop(0,'#ef4444'); redGrad.addColorStop(1,'#b91c1c');
+  const centerTextPlugin = {
+    id: 'centerTextPlugin_' + id,
+    afterDraw(chart){
+      const {ctx, chartArea:{left,right,top,bottom}} = chart;
+      const x = (left + right) / 2;
+      const y = (top + bottom) / 2;
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#0f172a';
+      ctx.font = '900 32px Inter, Segoe UI, Arial';
+      ctx.fillText(`${rec.toFixed(1)}%`, x, y - 9);
+      ctx.fillStyle = '#64748b';
+      ctx.font = '800 12px Inter, Segoe UI, Arial';
+      ctx.fillText('Recuperación', x, y + 21);
+      ctx.restore();
+    }
+  };
+  chartRefs[id]=new Chart(ctx,{
+    type:'doughnut',
+    data:{labels:['Cobrado','Adeudo'],datasets:[{data:[cobrado,adeudo],backgroundColor:[greenGrad,redGrad],borderWidth:5,borderColor:'#fff',hoverOffset:10,spacing:3}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'74%',animation:{animateRotate:true,animateScale:true},plugins:{legend:{display:false},tooltip:{backgroundColor:'#0f172a',padding:12,cornerRadius:12,callbacks:{label:c=>`${c.label}: ${money(c.raw)}`}}}},
+    plugins:[centerTextPlugin]
+  });
 }

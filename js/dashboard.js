@@ -55,7 +55,12 @@ function renderCharts(){
   const cobEmp=empresas.map(e=>sum(FILTERED.filter(r=>r.empresa===e&&r.tipo==='COBRADO'),r=>r.monto));
   const adeEmp=empresas.map(e=>sum(FILTERED.filter(r=>r.empresa===e&&r.tipo==='ADEUDO'),r=>r.monto));
   renderBar('chartEmpresa', empresas, [{label:'Cobrado',data:cobEmp,backgroundColor:COLORS.green},{label:'Adeudo',data:adeEmp,backgroundColor:COLORS.red}]);
-  renderDonut('chartDonut', sum(FILTERED.filter(r=>r.tipo==='COBRADO'),r=>r.monto), sum(FILTERED.filter(r=>r.tipo==='ADEUDO'),r=>r.monto));
+  const totalCobradoDonut = sum(FILTERED.filter(r=>r.tipo==='COBRADO'),r=>r.monto);
+  const totalAdeudoDonut = sum(FILTERED.filter(r=>r.tipo==='ADEUDO'),r=>r.monto);
+  renderDonut('chartDonut', totalCobradoDonut, totalAdeudoDonut);
+  if($('donutCobrado')) $('donutCobrado').textContent = fmtMoney(totalCobradoDonut);
+  if($('donutAdeudo')) $('donutAdeudo').textContent = fmtMoney(totalAdeudoDonut);
+  if($('donutTotal')) $('donutTotal').textContent = fmtMoney(totalCobradoDonut + totalAdeudoDonut);
   const fechas=uniq(FILTERED.map(r=>r.fecha).filter(Boolean)).slice(-40);
   renderLine('chartTendencia', fechas, fechas.map(f=>sum(FILTERED.filter(r=>r.fecha===f&&r.tipo==='COBRADO'),r=>r.monto)), fechas.map(f=>sum(FILTERED.filter(r=>r.fecha===f&&r.tipo==='ADEUDO'),r=>r.monto)));
   const caj=groupSum(FILTERED.filter(r=>r.tipo==='COBRADO'), r=>r.cajero, r=>r.monto).slice(0,10).reverse();
