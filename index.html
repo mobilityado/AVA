@@ -5,14 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Centro de Control AVA</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" />
-  <link rel="stylesheet" href="css/style.css?v=6" />
+  <link rel="stylesheet" href="css/style.css?v=7" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
   <div class="app-shell">
     <aside class="sidebar" id="sidebar">
       <div class="brand">
-        <div class="brand-mark">A</div>
+        <div class="brand-mark" aria-label="Autobús AVA">
+          <svg class="bus-icon" viewBox="0 0 64 64" role="img" aria-hidden="true">
+            <path d="M14 14h36c4 0 7 3 7 7v21c0 2.8-2.2 5-5 5h-2v3.5a3.5 3.5 0 0 1-7 0V47H21v3.5a3.5 3.5 0 0 1-7 0V47h-2c-2.8 0-5-2.2-5-5V21c0-4 3-7 7-7Z" fill="currentColor"/>
+            <path d="M13 22c0-1.2.8-2 2-2h34c1.2 0 2 .8 2 2v10H13V22Z" fill="rgba(255,255,255,.28)"/>
+            <path d="M18 38.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm28 0a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z" fill="rgba(255,255,255,.7)"/>
+            <path d="M20 18h24" stroke="rgba(255,255,255,.65)" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+        </div>
         <div>
           <strong>AVA</strong>
           <span>Mobility ADO</span>
@@ -130,8 +137,8 @@
       </section>
     </main>
   </div>
-  <script src="js/api.js?v=6"></script>
-  <script src="js/charts.js?v=6"></script>
-  <script src="js/dashboard.js?v=6"></script>
+  <script src="js/api.js?v=7"></script>
+  <script src="js/charts.js?v=7"></script>
+  <script src="js/dashboard.js?v=7"></script>
 </body>
 </html>

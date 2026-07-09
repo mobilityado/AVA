@@ -1,17 +1,13 @@
-# Centro de Control AVA Pro v6
+# Centro de Control AVA Pro v7
 
-Corrección para adeudos AVATRT y AVASUR.
+Versión visual actualizada con barra lateral degradada, icono de autobús SVG y colores más profesionales.
 
-## Qué se corrigió
+## Archivos
+- index.html
+- css/style.css
+- js/api.js
+- js/charts.js
+- js/dashboard.js
 
-- Ahora las hojas `AVATRT` y `AVASUR` leen el monto desde la columna **Por Cobrar**.
-- También detecta **Costo**, **Adeudo**, **Saldo** o **Monto Adeudo** si en el futuro cambia el encabezado.
-- Para adeudos usa fecha de **Fecha Corrida**.
-- Para cobros sigue usando **Monto Recuperado** y **Nombre Cajero**.
-- Corrige colores faltantes en gráficas.
-
-## Actualización
-
-Sube y reemplaza todo el contenido del ZIP en GitHub. Después abre la página con `Ctrl + F5`.
-
-No necesitas cambiar Apps Script si las URL `?accion=datos&hoja=AVATRT` y `?accion=datos&hoja=AVASUR` abren correctamente.
+## Uso
+Sube todo el contenido a tu repositorio de GitHub Pages. Después abre la página con Ctrl + F5 para limpiar caché.
