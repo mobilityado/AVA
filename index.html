@@ -5,147 +5,109 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Centro de Control AVA</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" />
-  <link rel="stylesheet" href="css/style.css?v=9" />
+  <link rel="stylesheet" href="css/styles.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 </head>
 <body>
-  <div class="app-shell">
-    <aside class="sidebar" id="sidebar">
-      <div class="brand">
-        <div class="brand-mark" aria-label="Autobús AVA">
-          <svg class="bus-icon" viewBox="0 0 64 64" role="img" aria-hidden="true">
-            <path d="M14 14h36c4 0 7 3 7 7v21c0 2.8-2.2 5-5 5h-2v3.5a3.5 3.5 0 0 1-7 0V47H21v3.5a3.5 3.5 0 0 1-7 0V47h-2c-2.8 0-5-2.2-5-5V21c0-4 3-7 7-7Z" fill="currentColor"/>
-            <path d="M13 22c0-1.2.8-2 2-2h34c1.2 0 2 .8 2 2v10H13V22Z" fill="rgba(255,255,255,.28)"/>
-            <path d="M18 38.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm28 0a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z" fill="rgba(255,255,255,.7)"/>
-            <path d="M20 18h24" stroke="rgba(255,255,255,.65)" stroke-width="3" stroke-linecap="round"/>
-          </svg>
-        </div>
-        <div>
-          <strong>AVA</strong>
-          <span>Mobility ADO</span>
-        </div>
+  <div id="splash" class="splash">
+    <div class="splash-card">
+      <div class="bus-logo big" aria-hidden="true">
+        <svg viewBox="0 0 64 64"><path d="M14 12h36c5 0 8 4 8 9v23c0 4-3 7-7 7h-1v4a3 3 0 0 1-6 0v-4H20v4a3 3 0 0 1-6 0v-4h-1c-4 0-7-3-7-7V21c0-5 3-9 8-9Zm1 8v14h34V20H15Zm5 23a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm24 0a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM18 16h28v-2H18v2Z"/></svg>
       </div>
-      <nav class="nav">
-        <a href="#resumen" class="active"><span>▦</span> Dashboard</a>
-        <a href="#cobrado"><span>●</span> Cobrado</a>
-        <a href="#adeudos"><span>●</span> Adeudos</a>
-        <a href="#tendencia"><span>⌁</span> Tendencia</a>
-        <a href="#cajeros"><span>◉</span> Cajeros</a>
-        <a href="#conductores"><span>☰</span> Conductores</a>
-        <a href="#reporte"><span>▤</span> Reporte</a>
-      </nav>
-      <div class="sidebar-footer">
-        <span>Estado</span>
-        <strong id="apiStatus">Preparando conexión</strong>
-      </div>
-    </aside>
-
-    <main class="main">
-      <header class="topbar">
-        <button class="menu-btn" id="menuBtn">☰</button>
-        <div>
-          <p class="eyebrow">Centro de Control AVA</p>
-          <h1>Dashboard Ejecutivo</h1>
-          <p class="subtitle">Recuperación, adeudos, tendencias, cajeros y conductores en una sola vista.</p>
-        </div>
-        <div class="top-actions">
-          <div class="last-update">Última actualización<br><strong id="lastUpdate">--</strong></div>
-          <button class="btn secondary" id="refreshBtn">Actualizar</button>
-          <button class="btn" id="exportBtn">Exportar CSV</button>
-        </div>
-      </header>
-
-      <section class="hero-card" id="resumen">
-        <div>
-          <p class="eyebrow">Base AVA</p>
-          <h2>TRT / SUR cobrado · AVATRT / AVASUR adeudos</h2>
-        </div>
-        <div class="status-pill" id="loadingText">Cargando información desde Google Sheet...</div>
-      </section>
-
-      <section class="filters card">
-        <label>Empresa
-          <select id="empresaFilter">
-            <option value="TODAS">Todas</option>
-            <option value="TRT">TRT</option>
-            <option value="SUR">SUR</option>
-          </select>
-        </label>
-        <label>Tipo
-          <select id="tipoFilter">
-            <option value="AMBOS">Cobrado + Adeudo</option>
-            <option value="COBRADO">Solo cobrado</option>
-            <option value="ADEUDO">Solo adeudo</option>
-          </select>
-        </label>
-        <label>Cajero
-          <select id="cajeroFilter"><option value="TODOS">Todos</option></select>
-        </label>
-        <label>Conductor
-          <select id="conductorFilter"><option value="TODOS">Todos</option></select>
-        </label>
-        <label>Desde
-          <input id="desdeFilter" type="date" />
-        </label>
-        <label>Hasta
-          <input id="hastaFilter" type="date" />
-        </label>
-        <button class="btn" id="applyBtn">Aplicar filtros</button>
-      </section>
-
-      <section class="kpi-grid">
-        <article class="kpi green"><span>Total cobrado</span><strong id="kpiCobrado">$0</strong><small id="kpiMovimientos">0 movimientos</small></article>
-        <article class="kpi red"><span>Total adeudo</span><strong id="kpiAdeudo">$0</strong><small id="kpiPendientes">0 pendientes</small></article>
-        <article class="kpi blue"><span>% recuperación</span><strong id="kpiRecuperacion">0%</strong><small>Cobrado vs total</small></article>
-        <article class="kpi purple"><span>Conductores con adeudo</span><strong id="kpiConductores">0</strong><small>Con saldo pendiente</small></article>
-      </section>
-
-      <section class="dashboard-grid">
-        <article class="card chart-card wide" id="cobrado">
-          <div class="card-head"><div><p class="eyebrow">Comparativo</p><h3>Cobrado vs adeudo por empresa</h3></div></div>
-          <canvas id="chartEmpresa"></canvas>
-        </article>
-        <article class="card chart-card" id="adeudos">
-          <div class="card-head"><div><p class="eyebrow">Distribución</p><h3>Recuperación total</h3></div></div>
-          <div class="donut-layout">
-            <div class="donut-canvas-wrap"><canvas id="chartDonut"></canvas></div>
-            <div class="donut-summary" id="donutSummary">
-              <div><span class="dot green-dot"></span><small>Cobrado</small><strong id="donutCobrado">$0.00</strong></div>
-              <div><span class="dot red-dot"></span><small>Adeudo</small><strong id="donutAdeudo">$0.00</strong></div>
-              <div><span class="dot purple-dot"></span><small>Total AVA</small><strong id="donutTotal">$0.00</strong></div>
-            </div>
-          </div>
-        </article>
-        <article class="card chart-card wide" id="tendencia">
-          <div class="card-head"><div><p class="eyebrow">Tendencia</p><h3>Cobrado y adeudo por fecha</h3></div></div>
-          <canvas id="chartTendencia"></canvas>
-        </article>
-        <article class="card chart-card" id="cajeros">
-          <div class="card-head"><div><p class="eyebrow">Ranking</p><h3>Cajeros que más cobraron</h3></div></div>
-          <canvas id="chartCajeros"></canvas>
-        </article>
-        <article class="card chart-card" id="conductores">
-          <div class="card-head"><div><p class="eyebrow">Prioridad</p><h3>Conductores con mayor adeudo</h3></div></div>
-          <canvas id="chartConductores"></canvas>
-        </article>
-      </section>
-
-      <section class="card table-card" id="reporte">
-        <div class="card-head">
-          <div><p class="eyebrow">Detalle</p><h3>Reporte filtrado</h3></div>
-          <input id="searchBox" class="search" placeholder="Buscar conductor, cajero, viaje..." />
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Tipo</th><th>Empresa</th><th>Fecha</th><th>Conductor</th><th>Cajero</th><th>Monto</th><th>Viaje</th></tr></thead>
-            <tbody id="reportBody"><tr><td colspan="7">Cargando...</td></tr></tbody>
-          </table>
-        </div>
-      </section>
-    </main>
+      <h1>Centro de Control AVA</h1>
+      <p>Preparando información ejecutiva</p>
+      <div class="loading-bar"><span></span></div>
+    </div>
   </div>
-  <script src="js/api.js?v=9"></script>
-  <script src="js/charts.js?v=9"></script>
-  <script src="js/dashboard.js?v=9"></script>
+
+  <button id="mobileMenu" class="mobile-menu" aria-label="Abrir menú">☰</button>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="brand">
+      <div class="bus-logo">
+        <svg viewBox="0 0 64 64"><path d="M14 12h36c5 0 8 4 8 9v23c0 4-3 7-7 7h-1v4a3 3 0 0 1-6 0v-4H20v4a3 3 0 0 1-6 0v-4h-1c-4 0-7-3-7-7V21c0-5 3-9 8-9Zm1 8v14h34V20H15Zm5 23a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm24 0a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM18 16h28v-2H18v2Z"/></svg>
+      </div>
+      <div><strong>AVA</strong><span>Mobility ADO</span></div>
+    </div>
+    <nav>
+      <a class="active" href="#dashboard">▣ Dashboard</a>
+      <a href="#cobrado">● Cobrado</a>
+      <a href="#adeudos">● Adeudos</a>
+      <a href="#tendencia">⌁ Tendencias</a>
+      <a href="#cajeros">◉ Cajeros</a>
+      <a href="#conductores">☷ Conductores</a>
+      <a href="#reporte">▤ Reporte</a>
+    </nav>
+    <div class="side-status">
+      <small>Estado</small>
+      <strong id="sideStatus">Sincronizando...</strong>
+    </div>
+  </aside>
+
+  <main id="dashboard" class="main">
+    <header class="topbar">
+      <section>
+        <span class="eyebrow">Centro de Control AVA</span>
+        <h1>Dashboard Ejecutivo</h1>
+        <p>Recuperación, adeudos, tendencias, cajeros y conductores.</p>
+      </section>
+      <section class="top-actions">
+        <div class="sync-box"><span>Última actualización</span><strong id="lastUpdate">--</strong></div>
+        <button id="themeBtn" class="ghost">🌓 Tema</button>
+        <button id="refreshBtn" class="ghost">Actualizar</button>
+        <button id="pdfBtn" class="primary">Exportar PDF</button>
+        <button id="csvBtn" class="primary green">Exportar CSV</button>
+      </section>
+    </header>
+
+    <section class="hero-card">
+      <div>
+        <span class="eyebrow">Base AVA</span>
+        <h2>TRT / SUR cobrado · AVATRT / AVASUR adeudos</h2>
+      </div>
+      <div id="connectionStatus" class="pill loading">Cargando información...</div>
+    </section>
+
+    <section class="filters card">
+      <label>Empresa<select id="empresaFilter"><option value="TODAS">Todas</option><option value="TRT">TRT</option><option value="SUR">SUR</option></select></label>
+      <label>Tipo<select id="tipoFilter"><option value="AMBOS">Cobrado + Adeudo</option><option value="COBRADO">Solo cobrado</option><option value="ADEUDO">Solo adeudo</option></select></label>
+      <label>Desde<input id="desdeFilter" type="date" /></label>
+      <label>Hasta<input id="hastaFilter" type="date" /></label>
+      <label>Cajero<select id="cajeroFilter"><option value="TODOS">Todos</option></select></label>
+      <label>Búsqueda avanzada<input id="searchFilter" type="search" placeholder="Conductor, autobús o folio..." /></label>
+      <button id="applyFilters" class="primary">Aplicar filtros</button>
+    </section>
+
+    <section class="kpis">
+      <article class="kpi accent-green"><span>Total cobrado</span><strong id="kpiCobrado">$0</strong><small id="kpiMovimientos">0 movimientos</small></article>
+      <article class="kpi accent-red"><span>Total adeudo</span><strong id="kpiAdeudo">$0</strong><small id="kpiPendientes">0 pendientes</small></article>
+      <article class="kpi accent-purple"><span>% recuperación</span><strong id="kpiRecuperacion">0%</strong><small>Cobrado vs total</small></article>
+      <article class="kpi accent-blue"><span>Conductores con adeudo</span><strong id="kpiConductores">0</strong><small>Con saldo pendiente</small></article>
+    </section>
+
+    <section class="grid two">
+      <article id="cobrado" class="card chart-card"><span class="eyebrow">Comparativo</span><h3>Cobrado vs adeudo por empresa</h3><canvas id="chartEmpresa"></canvas></article>
+      <article class="card chart-card"><span class="eyebrow">Distribución</span><h3>Recuperación total</h3><div class="donut-wrap"><canvas id="chartDonut"></canvas><div class="donut-center"><strong id="donutPercent">0%</strong><span>Recuperación</span></div></div><div class="donut-side"><span class="dot green"></span><b id="donutCobrado">$0</b><span>Cobrado</span><span class="dot red"></span><b id="donutAdeudo">$0</b><span>Adeudo</span></div></article>
+    </section>
+
+    <section id="tendencia" class="grid two">
+      <article class="card chart-card"><span class="eyebrow">Mensual</span><h3>Comparativo mensual</h3><canvas id="chartMensual"></canvas></article>
+      <article class="card chart-card"><span class="eyebrow">Anual</span><h3>Comparativo anual</h3><canvas id="chartAnual"></canvas></article>
+    </section>
+
+    <section class="grid two">
+      <article id="cajeros" class="card chart-card"><span class="eyebrow">Ranking</span><h3>Top 10 cajeros con mayor recuperación</h3><canvas id="chartCajeros"></canvas></article>
+      <article id="conductores" class="card chart-card"><span class="eyebrow">Adeudos</span><h3>Top 10 conductores con mayor adeudo</h3><canvas id="chartConductores"></canvas></article>
+    </section>
+
+    <section id="reporte" class="card report-card">
+      <div class="report-head"><div><span class="eyebrow">Reporte</span><h3>Detalle de movimientos</h3></div><span id="reportCount" class="pill">0 registros</span></div>
+      <div class="table-wrap"><table><thead><tr><th>Tipo</th><th>Empresa</th><th>Fecha</th><th>Folio/Viaje</th><th>Conductor</th><th>Autobús</th><th>Cajero</th><th>Monto</th></tr></thead><tbody id="reportBody"></tbody></table></div>
+    </section>
+  </main>
+
+  <script src="js/app.js"></script>
 </body>
 </html>
