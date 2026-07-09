@@ -46,20 +46,36 @@ function monthKey(d){ return d ? `${d.getFullYear()}-${String(d.getMonth()+1).pa
 function empresaFromSheet(sheet){ return String(sheet||'').toUpperCase().includes('SUR') ? 'SUR' : 'TRT'; }
 
 async function fetchSheet(sheet){
-  const url = `${API_URL}?accion=datos&hoja=${encodeURIComponent(sheet)}`;
-  const res = await fetch(url);
-  if(!res.ok) throw new Error(`No se pudo leer ${sheet}`);
+  const url = `${API_URL}?accion=datos&hoja=${encodeURIComponent(sheet)}&_=${Date.now()}`;
+  const res = await fetch(url, { cache: 'no-store' });
+  if(!res.ok) throw new Error(`No se pudo leer ${sheet}: HTTP ${res.status}`);
   const data = await res.json();
+  if(data.error) throw new Error(`${sheet}: ${data.mensaje || 'Error devuelto por Apps Script'}`);
   return data.datos || data.data || [];
 }
 async function loadData(){
   setStatus('Cargando información desde Google Sheet...');
   const sheets = [...HOJAS_COBRO, ...HOJAS_ADEUDO];
-  const responses = await Promise.all(sheets.map(async sheet => ({sheet, rows: await fetchSheet(sheet)})));
-  allRows = responses.flatMap(({sheet, rows}) => rows.map(row => normalizeRow(row, sheet))).filter(r => r.monto > 0 || r.tipo === 'ADEUDO');
-  populateFilters();
-  applyFilters();
-  setStatus(`Información actualizada: ${num(allRows.length)} registros cargados.`, 'ok');
+  try{
+    const responses = await Promise.allSettled(sheets.map(async sheet => ({sheet, rows: await fetchSheet(sheet)})));
+    const ok = responses.filter(r => r.status === 'fulfilled').map(r => r.value);
+    const bad = responses.filter(r => r.status === 'rejected').map(r => r.reason.message);
+
+    allRows = ok.flatMap(({sheet, rows}) => rows.map(row => normalizeRow(row, sheet))).filter(r => r.monto > 0 || r.tipo === 'ADEUDO');
+    populateFilters();
+    applyFilters();
+
+    if(!allRows.length){
+      setStatus('No se cargaron registros. Revisa que la implementación de Apps Script tenga acceso público y que las pestañas se llamen TRT, SUR, AVATRT y AVASUR.', 'error');
+      return;
+    }
+
+    const extra = bad.length ? ` Algunas hojas no cargaron: ${bad.join(' | ')}` : '';
+    setStatus(`Información actualizada: ${num(allRows.length)} registros cargados.${extra}`, bad.length ? 'warn' : 'ok');
+  }catch(err){
+    console.error(err);
+    setStatus(`Error al cargar información: ${err.message}`, 'error');
+  }
 }
 function normalizeRow(row, sheet){
   const tipo = HOJAS_ADEUDO.includes(sheet) ? 'ADEUDO' : 'COBRADO';
