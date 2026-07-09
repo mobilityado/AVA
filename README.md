@@ -1,13 +1,13 @@
-# Centro de Control AVA Pro v7
+# Centro de Control AVA Pro v8 Tornasol
 
-Versión visual actualizada con barra lateral degradada, icono de autobús SVG y colores más profesionales.
+Versión con sidebar morado degradado estilo tornasol, ícono de autobús, KPIs, filtros, gráficas y lectura de cobrado/adeudos desde Google Apps Script.
 
-## Archivos
-- index.html
-- css/style.css
-- js/api.js
-- js/charts.js
-- js/dashboard.js
+## Publicación
+Sube todo el contenido a tu repositorio de GitHub Pages.
+Después abre la página con Ctrl + F5 para limpiar caché.
 
-## Uso
-Sube todo el contenido a tu repositorio de GitHub Pages. Después abre la página con Ctrl + F5 para limpiar caché.
+## Hojas esperadas
+- TRT
+- SUR
+- AVATRT
+- AVASUR
