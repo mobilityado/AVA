@@ -1,5 +1,7 @@
 let ALL_ROWS = [];
 let FILTERED = [];
+if (typeof window.sum !== 'function') window.sum = (arr, fn) => (arr||[]).reduce((a,x)=>a+(Number(fn(x))||0),0);
+if (typeof window.groupSum !== 'function') window.groupSum = function(rows,keyFn,valFn){ const m=new Map(); (rows||[]).forEach(r=>{const k=keyFn(r)||'SIN DATO'; m.set(k,(m.get(k)||0)+(Number(valFn(r))||0));}); return [...m.entries()].map(([name,value])=>({name,value})).sort((a,b)=>b.value-a.value); };
 const $ = id => document.getElementById(id);
 function setStatus(text, mode='') { const el=$('loadingText'); el.textContent=text; el.className='status-pill '+mode; $('apiStatus').textContent=text; }
 function fmtMoney(v){return Number(v||0).toLocaleString('es-MX',{style:'currency',currency:'MXN'});}
