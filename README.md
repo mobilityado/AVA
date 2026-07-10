@@ -1,18 +1,15 @@
-# Centro de Inteligencia AVA v39 — Autobús de Ayuda
+# AVA v40 — Recuperación general
 
-Esta versión conserva la lógica y los módulos de la v38 e incorpora un asistente flotante.
+Esta versión alinea todos los indicadores ejecutivos con la recuperación general.
 
-## Novedad
-- Botón flotante con autobús en la esquina inferior derecha.
-- Chat integrado sobre el contenido del portal.
-- Responde usando los datos cargados y los filtros activos.
-- Consultas sobre total cobrado, recuperación de cajeros, top de cajeros, top de conductores, Honestidad, rubros, rutas, estatus, autobuses y folios.
-- No usa servicios externos ni modifica las estadísticas o rankings existentes.
+## Cambios
+- KPI de recuperación general = total cobrado / generado en Honestidad.
+- Velocímetro usa el mismo porcentaje.
+- Total cobrado incluye cajeros y otras áreas.
+- Pendiente ejecutivo = generado en Honestidad - total cobrado.
+- Resumen inteligente actualizado.
+- PDF incluye el porcentaje general.
+- Comparativos mensual y anual muestran generado, recuperado y porcentaje general.
+- Rankings y estadísticas de cajeros continúan usando únicamente los cobros de TRT y SUR.
 
-## Publicación
-Reemplaza en GitHub Pages:
-- `index.html`
-- carpeta `css`
-- carpeta `js`
-
-Después usa `Ctrl + F5`.
+Sube `index.html`, `css/` y `js/` a GitHub Pages y actualiza con Ctrl + F5.
