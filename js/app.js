@@ -1,6 +1,6 @@
 const API='https://script.google.com/macros/s/AKfycbxpX9FNMZZDL72L76vS4keCiWC3xPb79_cMkpcBk0_AqktKHizk7j5A6r53brRN9y9d/exec';
 const SHEETS=[['TRT','COBRO','TRT'],['SUR','COBRO','SUR'],['AVATRT','INCIDENCIA','TRT'],['AVASUR','INCIDENCIA','SUR']];let raw=[],filtered=[],charts={},timer=null;
-const SESSION_KEY='cioAvaSessionV44';let session=null;
+const SESSION_KEY='cioAvaSessionV45';let session=null;
 let cfg;try{cfg=JSON.parse(localStorage.getItem('avaCfg')||'{"meta":50000,"umbral":10000,"refresh":60000,"theme":"light"}')}catch(_){cfg={meta:50000,umbral:10000,refresh:60000,theme:'light'}};
 function hideSplash(){if(typeof window.forceCloseAvaSplash==='function'){window.forceCloseAvaSplash();return}const sp=document.querySelector('#splash');if(sp){sp.classList.add('hide');setTimeout(()=>sp.remove(),550)}}
 function on(sel,event,fn){const el=$(sel);if(el)el.addEventListener(event,fn)}
@@ -24,7 +24,33 @@ async function performLogin(e){e?.preventDefault();const usuario=$('#loginUser')
 async function endSession(callServer=true){const token=session?.token;if(callServer&&token){try{await apiPost({accion:'logout',token})}catch(_){}}session=null;sessionStorage.removeItem(SESSION_KEY);raw=[];filtered=[];if(timer)clearInterval(timer);Object.values(charts).forEach(c=>{try{c.destroy()}catch(_){}});charts={};$('#sessionBadge')?.setAttribute('hidden','');$('#logoutBtn')?.setAttribute('hidden','');showLogin();setSync('Sesión cerrada');}
 async function initializeAuth(){on('#loginForm','submit',performLogin);on('#logoutBtn','click',()=>endSession(true));on('#togglePassword','click',()=>{const i=$('#loginPassword');i.type=i.type==='password'?'text':'password'});await loadLoginUsers();const saved=readSession();if(saved?.token){try{const j=await apiGet('sesion',{token:saved.token});if(j.autorizado){saveSession({...saved,...j});applyRoleUI();hideLogin();return true}}catch(_){}}showLogin();return false}
 async function fetchSheet(x){const[h,c,e]=x;if(!session?.token)throw new Error('No hay sesión activa.');const j=await apiGet('datos',{hoja:h,token:session.token});if(j.error)throw new Error(j.mensaje||`No se pudo leer ${h}`);return(j.datos||j.data||[]).map(r=>normalize(r,c,e,h))}
-async function loadData(){if(!session?.token)return;try{setSync('Cargando…');raw=(await Promise.all(SHEETS.map(fetchSheet))).flat();populateFilters();applyFilters();setSync(`Actualizado ${new Date().toLocaleTimeString('es-MX')}`,true);toast('Datos actualizados')}catch(e){console.error(e);setSync('Error al cargar',false,true);toast(e.message||'Error de conexión')}}
+async function loadData(){
+  if(!session?.token)return;
+  setSync('Cargando…');
+  try{
+    const resultados=await Promise.allSettled(SHEETS.map(fetchSheet));
+    const correctos=resultados.filter(r=>r.status==='fulfilled').flatMap(r=>r.value);
+    const errores=resultados.filter(r=>r.status==='rejected').map(r=>r.reason?.message||'Error desconocido');
+    if(!correctos.length){
+      throw new Error(errores[0]||'No fue posible cargar las hojas de datos.');
+    }
+    raw=correctos;
+    populateFilters();
+    applyFilters();
+    const hora=new Date().toLocaleTimeString('es-MX');
+    if(errores.length){
+      setSync(`Carga parcial ${hora}`,false,true);
+      toast(`Se cargaron ${resultados.length-errores.length} de ${resultados.length} hojas. ${errores.join(' | ')}`);
+    }else{
+      setSync(`Actualizado ${hora}`,true);
+      toast('Datos actualizados');
+    }
+  }catch(e){
+    console.error(e);
+    setSync('Error al cargar',false,true);
+    toast(e.message||'Error de conexión');
+  }
+}
 function setSync(t,ok,err){$('#syncText').textContent=t;$('.sync').className='sync '+(ok?'ok':err?'err':'')}
 function populateFilters(){for(const[id,key]of[['#fRubro','_rubro'],['#fEstatus','_estatus']]){const s=$(id),cur=s.value,vals=[...new Set(raw.filter(r=>id==='#fRubro'?r._clase==='INCIDENCIA':true).map(r=>r[key]).filter(Boolean))].sort();s.innerHTML=`<option value="TODOS">Todos</option>`+vals.map(v=>`<option>${v}</option>`).join('');s.value=vals.includes(cur)?cur:'TODOS'}}
 function applyFilters(){const emp=$('#fEmpresa').value,rub=$('#fRubro').value,est=$('#fEstatus').value,q=lc($('#fSearch').value),de=$('#fDesde').value?new Date($('#fDesde').value+'T00:00:00'):null,ha=$('#fHasta').value?new Date($('#fHasta').value+'T23:59:59'):null;filtered=raw.filter(r=>(emp==='TODAS'||r._empresa===emp)&&(rub==='TODOS'||r._rubro===rub)&&(est==='TODOS'||r._estatus===est)&&(!de||r._fecha>=de)&&(!ha||r._fecha<=ha)&&(!q||lc([r._conductor,...(isAdmin()?[r._cajero]:[]),r._autobus,r._folio,r._anomalia,r._ruta,r._rubro].join(' ')).includes(q)));renderAll()}

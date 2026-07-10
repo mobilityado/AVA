@@ -1,5 +1,5 @@
 /**
- * CIO AVA v44 — API con nombre, bienvenida y roles
+ * CIO AVA v45 — sesión estable, nombre, bienvenida y roles
  * Hoja requerida: USUARIOS
  * Columnas: USUARIO | CONTRASEÑA | TIPO DE CUENTA | NOMBRE
  */
@@ -14,7 +14,7 @@ function doGet(e) {
   const p = e.parameter || {};
   const accion = String(p.accion || 'inicio').toLowerCase();
   try {
-    if (accion === 'inicio') return respuesta({ error: false, mensaje: 'API CIO AVA v44 activa', autenticacion: true });
+    if (accion === 'inicio') return respuesta({ error: false, mensaje: 'API CIO AVA v45 activa', autenticacion: true });
     if (accion === 'usuarios') return listarUsuarios();
     if (accion === 'sesion') return validarSesionPublica(p.token);
     if (accion === 'datos') return obtenerDatosSeguro(p.hoja, p.token);
@@ -67,7 +67,7 @@ function iniciarSesion(usuario, contrasena) {
     creada: ahora,
     expira: ahora + DURACION_SESION_SEGUNDOS * 1000
   };
-  CacheService.getScriptCache().put(PREFIJO_SESION + token, JSON.stringify(sesion), DURACION_SESION_SEGUNDOS);
+  guardarSesion_(token, sesion);
   return respuesta({
     autorizado: true,
     token: token,
@@ -86,7 +86,7 @@ function validarSesionPublica(token) {
 }
 
 function cerrarSesion(token) {
-  if (token) CacheService.getScriptCache().remove(PREFIJO_SESION + String(token));
+  if (token) eliminarSesion_(String(token));
   return respuesta({ error: false, mensaje: 'Sesión cerrada.' });
 }
 
@@ -139,19 +139,39 @@ function leerUsuarios_() {
   })).filter(u => u.usuario && u.contrasena);
 }
 
+function guardarSesion_(token, sesion) {
+  const props = PropertiesService.getScriptProperties();
+  const lock = LockService.getScriptLock();
+  lock.waitLock(5000);
+  try {
+    props.setProperty(PREFIJO_SESION + token, JSON.stringify(sesion));
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function eliminarSesion_(token) {
+  PropertiesService.getScriptProperties().deleteProperty(PREFIJO_SESION + token);
+}
+
 function obtenerSesion_(token) {
   token = String(token || '').trim();
   if (!token || token.length < 30) return null;
-  const raw = CacheService.getScriptCache().get(PREFIJO_SESION + token);
+  const props = PropertiesService.getScriptProperties();
+  const clave = PREFIJO_SESION + token;
+  const raw = props.getProperty(clave);
   if (!raw) return null;
   try {
     const sesion = JSON.parse(raw);
     if (!sesion.expira || Date.now() > sesion.expira) {
-      CacheService.getScriptCache().remove(PREFIJO_SESION + token);
+      props.deleteProperty(clave);
       return null;
     }
     return sesion;
-  } catch (_) { return null; }
+  } catch (_) {
+    props.deleteProperty(clave);
+    return null;
+  }
 }
 
 function ocultarCajeros_(obj) {
