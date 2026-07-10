@@ -1,15 +1,17 @@
-# AVA v40 — Recuperación general
+# CIO AVA v41 — Identidad corporativa
 
-Esta versión alinea todos los indicadores ejecutivos con la recuperación general.
+Proyecto listo para GitHub Pages, basado en la versión funcional de recuperación general.
 
-## Cambios
-- KPI de recuperación general = total cobrado / generado en Honestidad.
-- Velocímetro usa el mismo porcentaje.
-- Total cobrado incluye cajeros y otras áreas.
-- Pendiente ejecutivo = generado en Honestidad - total cobrado.
-- Resumen inteligente actualizado.
-- PDF incluye el porcentaje general.
-- Comparativos mensual y anual muestran generado, recuperado y porcentaje general.
-- Rankings y estadísticas de cajeros continúan usando únicamente los cobros de TRT y SUR.
+## Cambios de identidad
+- Logotipo SVG propio: autobús moderno + gráfica ascendente + escudo.
+- Degradado tornasol morado, violeta y azul.
+- Encabezado: **Centro de Inteligencia Operativa AVA**.
+- Marca lateral: **CIO AVA**.
+- Pantalla de carga, favicon, asistente y PDF con la nueva identidad.
+- Pie de página:
+  - Centro de Inteligencia Operativa AVA
+  - Gerencia Regional de Recaudación VHT
+  - Mobility ADO
 
-Sube `index.html`, `css/` y `js/` a GitHub Pages y actualiza con Ctrl + F5.
+## Publicación
+Sube todo el contenido de esta carpeta a la raíz de tu repositorio y actualiza con Ctrl + F5.

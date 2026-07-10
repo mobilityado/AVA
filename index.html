@@ -1,5 +1,5 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Centro de Inteligencia AVA</title><link rel="stylesheet" href="css/styles.css"><script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script><script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script><script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script></head>
-<body class="light"><div id="splash" class="splash"><div class="splash-content"><div class="bus-road"><div class="bus">🚌</div></div><h1>Centro de Inteligencia AVA</h1><p>Preparando indicadores y tendencias</p><span class="loader"></span></div></div><script>
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CIO AVA | Centro de Inteligencia Operativa AVA</title><link rel="icon" type="image/svg+xml" href="assets/favicon.svg"><meta name="theme-color" content="#5b21b6"><link rel="stylesheet" href="css/styles.css"><script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script><script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script><script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script></head>
+<body class="light"><div id="splash" class="splash"><div class="splash-content"><div class="splash-logo-wrap"><img class="splash-logo" src="assets/cio-ava-logo.svg" alt="Logotipo CIO AVA"></div><h1>CIO AVA</h1><h2>Centro de Inteligencia Operativa AVA</h2><p>Preparando indicadores, recuperación y tendencias</p><span class="loader"></span></div></div><script>
 (function(){
   function forceCloseSplash(){
     var splash=document.getElementById('splash');
@@ -12,9 +12,9 @@
   window.addEventListener('load',function(){setTimeout(forceCloseSplash,500);});
 })();
 </script>
-<aside class="sidebar"><div class="brand"><div class="brand-icon">🚌</div><div><b>AVA</b><small>Inteligencia operativa</small></div></div><nav>
-<button class="nav active" data-view="dashboard">📊 Dashboard</button><button class="nav" data-view="rubros">🧩 Rubros</button><button class="nav" data-view="honestidad">🛡️ Honestidad</button><button class="nav" data-view="conductores">🚌 Conductores</button><button class="nav" data-view="cajeros">💰 Cajeros</button><button class="nav" data-view="rutas">🗺️ Rutas</button><button class="nav" data-view="tendencias">📈 Tendencias</button><button class="nav" data-view="insights">🤖 Resumen</button><button class="nav" data-view="reportes">📄 Reportes</button><button class="nav" data-view="config">⚙️ Configuración</button></nav><div class="sync"><span></span><small id="syncText">Esperando datos</small></div></aside>
-<main class="app" id="captureArea"><header class="topbar"><div><h1 id="pageTitle">Dashboard Ejecutivo</h1><p>Recuperación de cajeros, incidencias de conductores, honestidad y análisis por rubro.</p></div><div class="actions"><button id="themeBtn" class="btn ghost">☀️/🌙 Tema</button><button id="refreshBtn" class="btn">Actualizar</button><button id="pdfBtn" class="btn primary">PDF</button></div></header>
+<aside class="sidebar"><div class="brand"><img class="brand-logo" src="assets/cio-ava-logo.svg" alt="CIO AVA"><div><b>CIO AVA</b><small>Centro de Inteligencia<br>Operativa AVA</small></div></div><nav>
+<button class="nav active" data-view="dashboard">📊 Resumen Ejecutivo</button><button class="nav" data-view="rubros">🧩 Rubros</button><button class="nav" data-view="honestidad">🛡️ Honestidad</button><button class="nav" data-view="conductores">🚌 Conductores</button><button class="nav" data-view="cajeros">💰 Cajeros</button><button class="nav" data-view="rutas">🗺️ Rutas</button><button class="nav" data-view="tendencias">📈 Tendencias</button><button class="nav" data-view="insights">🤖 Resumen</button><button class="nav" data-view="reportes">📄 Reportes</button><button class="nav" data-view="config">⚙️ Configuración</button></nav><div class="sync"><span></span><small id="syncText">Esperando datos</small></div></aside>
+<main class="app" id="captureArea"><header class="topbar"><div><h1 id="pageTitle">Centro de Inteligencia Operativa AVA</h1><p>Análisis ejecutivo de recuperación, incidencias y tendencias operativas.</p></div><div class="actions"><button id="themeBtn" class="btn ghost">☀️/🌙 Tema</button><button id="refreshBtn" class="btn">Actualizar</button><button id="pdfBtn" class="btn primary">PDF</button></div></header>
 <section class="filters card"><label>Empresa<select id="fEmpresa"><option value="TODAS">Todas</option><option>TRT</option><option>SUR</option></select></label><label>Rubro<select id="fRubro"><option value="TODOS">Todos</option></select></label><label>Estatus<select id="fEstatus"><option value="TODOS">Todos</option></select></label><label>Desde<input id="fDesde" type="date"></label><label>Hasta<input id="fHasta" type="date"></label><label>Búsqueda<input id="fSearch" placeholder="Conductor, cajero, autobús, folio, anomalía o ruta"></label><button id="clearBtn" class="btn ghost">Limpiar</button></section>
 <section id="dashboard" class="view active"><div class="kpis six"><div class="kpi green"><span>Total cobrado</span><b id="kCobrado">$0</b><small id="kCobradoTrend">Cajeros + otras áreas</small></div><div class="kpi purple"><span>Generado en honestidad</span><b id="kHonestidad">$0</b><small>Incidencias clasificadas como Honestidad</small></div><div class="kpi blue"><span>Otros rubros</span><b id="kOtros">0</b><small>Incidencias distintas a Honestidad</small></div><div class="kpi red"><span>Pendiente por cobrar</span><b id="kAdeudo">$0</b><small>Generado en Honestidad menos total cobrado</small></div><div class="kpi amber"><span>Incidencias generales</span><b id="kIncidencias">0</b><small>Registros AVATRT / AVASUR</small></div><div class="kpi cyan"><span>% recuperación general</span><b id="kRec">0%</b><small>Total cobrado / generado en Honestidad</small></div></div>
 <div class="grid three"><div class="card compact"><h2>Recuperación general</h2><div class="chart sm"><canvas id="gaugeChart"></canvas><div id="gaugeValue" class="center-label">0%</div></div></div><div class="card compact"><h2>Generado por rubro</h2><div class="chart sm"><canvas id="rubrosDonut"></canvas></div></div><div class="card compact"><h2>Pronóstico de recuperación</h2><div id="forecastBox" class="forecast"></div><div class="forecast-progress"><i id="forecastProgress"></i></div></div></div>
@@ -33,12 +33,12 @@
 
 <!-- Autobús de Ayuda AVA -->
 <button id="helpBusBtn" class="help-bus-btn" type="button" aria-label="Abrir Autobús de Ayuda" title="Autobús de Ayuda">
-  <span class="help-bus-icon">🚌</span><span class="help-bus-pulse"></span>
+  <img class="help-bus-logo" src="assets/cio-ava-logo.svg" alt="CIO AVA"><span class="help-bus-pulse"></span>
 </button>
 <section id="helpChat" class="help-chat" aria-hidden="true">
   <header class="help-chat-header">
-    <div class="help-chat-avatar">🚌</div>
-    <div><strong>Autobús de Ayuda</strong><small>Asistente del Centro de Inteligencia AVA</small></div>
+    <div class="help-chat-avatar"><img src="assets/cio-ava-logo.svg" alt="CIO AVA"></div>
+    <div><strong>Autobús de Ayuda</strong><small>Asistente de CIO AVA</small></div>
     <button id="helpChatClose" type="button" aria-label="Cerrar chat">×</button>
   </header>
   <div id="helpChatMessages" class="help-chat-messages" aria-live="polite"></div>
@@ -54,4 +54,4 @@
   </form>
   <footer>Las respuestas usan la información actualmente cargada y los filtros activos.</footer>
 </section>
-<script src="js/app.js" defer></script></body></html>
+<footer class="site-footer"><img src="assets/cio-ava-logo.svg" alt="CIO AVA"><div><strong>CIO AVA</strong><span>Centro de Inteligencia Operativa AVA</span></div><div class="footer-center">Gerencia Regional de Recaudación VHT<br>Mobility ADO</div></footer><script src="js/app.js" defer></script></body></html>
