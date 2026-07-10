@@ -10,7 +10,7 @@
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-<body>
+<body class="dark">
   <div id="splash" class="splash"><div class="bus">🚌</div><h1>Centro de Inteligencia AVA</h1><span></span></div>
   <aside class="sidebar">
     <div class="brand"><div class="brand-icon">🚌</div><div><b>AVA</b><small>Centro de Inteligencia</small></div></div>
@@ -54,9 +54,10 @@
         <div class="kpi"><span>% recuperación</span><b id="kRec">0%</b><small>cobrado / total AVA</small></div>
         <div class="kpi warn"><span>Alertas críticas</span><b id="kAlertas">0</b><small>según umbral</small></div>
       </div>
-      <div class="grid two">
-        <div class="card gauge-card compact-chart-card"><h2>Velocímetro de recuperación</h2><div class="compact-chart-wrap gauge-wrap"><canvas id="gaugeChart"></canvas><div class="gauge-value" id="gaugeValue">0%</div></div></div>
-        <div class="card compact-chart-card"><h2>Cobrado vs adeudo</h2><div class="compact-chart-wrap donut-wrap"><canvas id="donutChart"></canvas></div></div>
+      <div class="grid executive-row">
+        <div class="card gauge-card executive-card"><h2>Velocímetro de recuperación</h2><div class="compact-chart-wrap gauge-wrap"><canvas id="gaugeChart"></canvas><div class="gauge-value" id="gaugeValue">0%</div><div class="gauge-scale"><span>0%</span><span>100%</span></div></div></div>
+        <div class="card executive-card"><h2>Cobrado vs adeudo</h2><div class="compact-chart-wrap donut-wrap"><canvas id="donutChart"></canvas></div></div>
+        <div class="card executive-card forecast-mini"><h2>Pronóstico al cierre del mes</h2><div id="forecastBox" class="forecast"></div><div class="forecast-progress"><i id="forecastProgress"></i></div></div>
       </div>
       <div class="grid two">
         <div class="card"><h2>Tendencia mensual</h2><canvas id="monthlyChart"></canvas></div>
@@ -72,7 +73,7 @@
     <section id="conductores" class="view"><div class="card"><h2>Conductores</h2><div id="driversList" class="entity-list"></div></div></section>
     <section id="cajeros" class="view"><div class="card"><h2>Cajeros</h2><div id="cashiersList" class="entity-list"></div></div></section>
     <section id="rutas" class="view"><div class="grid two"><div class="card"><h2>Origen → destino más concurrido</h2><div id="routesList" class="rank"></div></div><div class="card"><h2>Análisis por ruta</h2><canvas id="routesChart"></canvas></div></div></section>
-    <section id="tendencias" class="view"><div class="grid two"><div class="card"><h2>Pronóstico al cierre del mes</h2><div id="forecastBox" class="forecast"></div></div><div class="card"><h2>Estatus</h2><canvas id="statusChart"></canvas></div></div><div class="card"><h2>Mapa de calor: estatus por cajero</h2><div id="heatmap" class="heatmap"></div></div></section>
+    <section id="tendencias" class="view"><div class="card"><h2>Estatus</h2><div class="status-chart-wrap"><canvas id="statusChart"></canvas></div></div><div class="card"><h2>Mapa de calor: estatus por cajero</h2><div id="heatmap" class="heatmap"></div></div></section>
     <section id="insights" class="view"><div class="card"><h2>Resumen inteligente</h2><div id="insightsBox" class="insights"></div></div></section>
     <section id="reportes" class="view"><div class="card"><h2>Reportes corporativos</h2><p>Exporta el tablero ejecutivo filtrado.</p><button id="excelBtn" class="btn primary">Exportar Excel</button><button id="csvBtn" class="btn">Exportar CSV</button><button id="pdfBtn2" class="btn">Exportar PDF</button><div class="table-wrap"><table id="dataTable"><thead></thead><tbody></tbody></table></div></div></section>
     <section id="config" class="view"><div class="card"><h2>Configuración</h2><label>Meta mensual de recuperación<input id="cfgMeta" type="number" value="50000"></label><label>Umbral de alerta por adeudo<input id="cfgUmbral" type="number" value="10000"></label><label>Actualización automática<select id="cfgRefresh"><option value="60000">Cada 60 segundos</option><option value="300000">Cada 5 minutos</option><option value="0">Desactivada</option></select></label><button id="saveCfg" class="btn primary">Guardar configuración</button></div></section>
