@@ -32,3 +32,9 @@ Lee las hojas:
 - SUR
 - AVATRT
 - AVASUR
+
+
+## Versión 31
+- Velocímetro y donut reducidos para aprovechar mejor la pantalla.
+- Altura adaptable para escritorio, tablet y celular.
+- Las gráficas conservan animación y tooltips.
