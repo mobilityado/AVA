@@ -7,3 +7,9 @@ Cambios en el módulo Rubros:
 - Se conserva el diseño y la conexión de la versión anterior.
 
 Sube todos los archivos y carpetas a GitHub Pages y actualiza con Ctrl + F5.
+
+
+## Versión 38
+- La tarjeta principal ahora muestra **Total cobrado**.
+- Suma cobros de TRT/SUR realizados por cajeros y registros con estatus **Cobrado** en AVATRT/AVASUR.
+- Rankings, gráficas y estadísticas de cajeros continúan calculándose únicamente con TRT/SUR.
