@@ -1,15 +1,18 @@
-# Centro de Inteligencia AVA v37
+# Centro de Inteligencia AVA v39 — Autobús de Ayuda
 
-Cambios en el módulo Rubros:
-- La gráfica de importe fue reemplazada por una gráfica de pastel con la distribución de incidencias.
-- Honestidad conserva importe en pesos y número de incidencias.
-- Los demás rubros muestran únicamente el número de incidencias.
-- Se conserva el diseño y la conexión de la versión anterior.
+Esta versión conserva la lógica y los módulos de la v38 e incorpora un asistente flotante.
 
-Sube todos los archivos y carpetas a GitHub Pages y actualiza con Ctrl + F5.
+## Novedad
+- Botón flotante con autobús en la esquina inferior derecha.
+- Chat integrado sobre el contenido del portal.
+- Responde usando los datos cargados y los filtros activos.
+- Consultas sobre total cobrado, recuperación de cajeros, top de cajeros, top de conductores, Honestidad, rubros, rutas, estatus, autobuses y folios.
+- No usa servicios externos ni modifica las estadísticas o rankings existentes.
 
+## Publicación
+Reemplaza en GitHub Pages:
+- `index.html`
+- carpeta `css`
+- carpeta `js`
 
-## Versión 38
-- La tarjeta principal ahora muestra **Total cobrado**.
-- Suma cobros de TRT/SUR realizados por cajeros y registros con estatus **Cobrado** en AVATRT/AVASUR.
-- Rankings, gráficas y estadísticas de cajeros continúan calculándose únicamente con TRT/SUR.
+Después usa `Ctrl + F5`.

@@ -29,4 +29,29 @@
 <section id="insights" class="view"><div class="card"><h2>Resumen inteligente</h2><div id="insightsBox" class="insights"></div></div></section>
 <section id="reportes" class="view"><div class="card"><h2>Reportes corporativos</h2><p>Exporta los datos filtrados y el tablero.</p><button id="excelBtn" class="btn primary">Excel</button><button id="csvBtn" class="btn">CSV</button><button id="pdfBtn2" class="btn">PDF</button><div class="table-wrap"><table id="dataTable"><thead></thead><tbody></tbody></table></div></div></section>
 <section id="config" class="view"><div class="card config-grid"><label>Meta mensual<input id="cfgMeta" type="number" value="50000"></label><label>Umbral de alerta<input id="cfgUmbral" type="number" value="10000"></label><label>Actualización<select id="cfgRefresh"><option value="60000">60 segundos</option><option value="300000">5 minutos</option><option value="0">Desactivada</option></select></label><button id="saveCfg" class="btn primary">Guardar</button></div></section></main>
-<div id="detailPanel" class="detail"><button id="closeDetail">×</button><div id="detailContent"></div></div><div id="toast" class="toast"></div><script src="js/app.js" defer></script></body></html>
+<div id="detailPanel" class="detail"><button id="closeDetail">×</button><div id="detailContent"></div></div><div id="toast" class="toast"></div>
+
+<!-- Autobús de Ayuda AVA -->
+<button id="helpBusBtn" class="help-bus-btn" type="button" aria-label="Abrir Autobús de Ayuda" title="Autobús de Ayuda">
+  <span class="help-bus-icon">🚌</span><span class="help-bus-pulse"></span>
+</button>
+<section id="helpChat" class="help-chat" aria-hidden="true">
+  <header class="help-chat-header">
+    <div class="help-chat-avatar">🚌</div>
+    <div><strong>Autobús de Ayuda</strong><small>Asistente del Centro de Inteligencia AVA</small></div>
+    <button id="helpChatClose" type="button" aria-label="Cerrar chat">×</button>
+  </header>
+  <div id="helpChatMessages" class="help-chat-messages" aria-live="polite"></div>
+  <div id="helpSuggestions" class="help-suggestions">
+    <button type="button" data-question="¿Cuál es el total cobrado?">Total cobrado</button>
+    <button type="button" data-question="¿Quiénes son los top cajeros?">Top cajeros</button>
+    <button type="button" data-question="¿Quiénes son los conductores con más incidencias?">Top conductores</button>
+    <button type="button" data-question="¿Dónde hay más incidencias de Honestidad?">Lugares de Honestidad</button>
+  </div>
+  <form id="helpChatForm" class="help-chat-form">
+    <input id="helpChatInput" autocomplete="off" placeholder="Pregunta sobre datos, cajeros, conductores, rutas…" aria-label="Escribe tu pregunta">
+    <button type="submit" aria-label="Enviar pregunta">➤</button>
+  </form>
+  <footer>Las respuestas usan la información actualmente cargada y los filtros activos.</footer>
+</section>
+<script src="js/app.js" defer></script></body></html>

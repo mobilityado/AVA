@@ -59,3 +59,55 @@ function setup(){
 }
 function startTimer(){if(timer)clearInterval(timer);if(cfg.refresh>0)timer=setInterval(loadData,cfg.refresh)}
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',setup,{once:true})}else{setup()}
+
+/* =========================================================
+   AUTOBÚS DE AYUDA — asistente local basado en datos cargados
+   ========================================================= */
+function helpEscape(value){return String(value??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+function helpRows(){return filtered.length?filtered:raw}
+function helpTopRows(rows,key,mode='total',limit=5){return sorted(group(rows,key),mode).filter(x=>x.key&& !String(x.key).startsWith('SIN ')).slice(0,limit)}
+function helpAddMessage(role,html){const box=$('#helpChatMessages');if(!box)return;const item=document.createElement('div');item.className=`help-msg ${role}`;item.innerHTML=`<div class="help-bubble">${html}</div>`;box.appendChild(item);box.scrollTop=box.scrollHeight;return item}
+function helpWelcome(){const box=$('#helpChatMessages');if(!box||box.children.length)return;helpAddMessage('bot',`¡Hola! Soy el <b>Autobús de Ayuda AVA</b>. Puedo ayudarte a interpretar los indicadores y consultar los datos visibles del portal.<br><br>Prueba con preguntas como:<ul class="help-answer-list"><li>¿Cuál es el total cobrado?</li><li>¿Quién es el cajero que más recuperó?</li><li>¿Qué conductor tiene más incidencias?</li><li>¿Dónde ocurre más Honestidad?</li></ul><div class="help-data-note">Trabajo con los filtros que estén activos.</div>`)}
+function helpFormatRanking(items,mode='total',noun='registros'){if(!items.length)return 'No encontré datos para esa consulta con los filtros actuales.';return `<ol class="help-answer-list">${items.map(x=>`<li><b>${helpEscape(x.key)}</b> — ${mode==='total'?money(x.total):`${x.count.toLocaleString('es-MX')} ${noun}`}</li>`).join('')}</ol>`}
+function helpSpecificEntity(q,rows){
+  const search=lc(q.replace(/^(conductor|cajero|autobus|autobús|folio|ruta)\s*/i,''));
+  if(search.length<2)return null;
+  const matches=rows.filter(r=>lc([r._conductor,r._cajero,r._autobus,r._folio,r._ruta].join(' ')).includes(search));
+  if(!matches.length)return null;
+  const inc=matches.filter(r=>r._clase==='INCIDENCIA'),cob=matches.filter(r=>r._clase==='COBRO');
+  const name=matches[0]._conductor!=='SIN CONDUCTOR'&&lc(matches[0]._conductor).includes(search)?matches[0]._conductor:matches[0]._cajero!=='SIN CAJERO'&&lc(matches[0]._cajero).includes(search)?matches[0]._cajero:matches[0]._autobus||matches[0]._folio||matches[0]._ruta;
+  return `<b>${helpEscape(name)}</b><ul class="help-answer-list"><li>${matches.length.toLocaleString('es-MX')} registros encontrados</li><li>${inc.length.toLocaleString('es-MX')} incidencias por ${money(sum(inc))}</li><li>${cob.length.toLocaleString('es-MX')} cobros por ${money(sum(cob))}</li><li>Pendiente: ${money(sum(inc,'_pendiente'))}</li></ul>`;
+}
+function helpAnswer(question){
+  const q=lc(question),rows=helpRows(),inc=rows.filter(r=>r._clase==='INCIDENCIA'),cobros=rows.filter(r=>r._clase==='COBRO'),hon=honesty(rows),otrasCobradas=inc.filter(r=>lc(r._estatus)==='cobrado');
+  if(!rows.length)return 'Todavía no hay datos disponibles. Espera a que termine la carga o pulsa <b>Actualizar</b>.';
+  const specific=helpSpecificEntity(q,rows);if(specific&&/(conductor|cajero|autobus|autobús|folio|ruta|buscar|consulta)/.test(q))return specific;
+  if(/(hola|buenas|ayuda|que puedes|qué puedes|como funciona|cómo funciona)/.test(q))return `Puedo responder sobre <b>cobros, cajeros, conductores, Honestidad, rubros, rutas, estatus, autobuses y folios</b>. También puedo indicarte dónde encontrar cada módulo del portal.`;
+  if(/(total cobrado|cuanto se ha cobrado|cuánto se ha cobrado|cobrado general)/.test(q)){const caj=sum(cobros),otras=sum(otrasCobradas),total=caj+otras;return `El <b>total cobrado general</b> es ${money(total)}.<ul class="help-answer-list"><li>Cobrado por cajeros: ${money(caj)}</li><li>Cobrado por otras áreas: ${money(otras)}</li></ul>`}
+  if(/(recuperado por cajero|cobrado por cajero|recuperacion de cajeros|recuperación de cajeros)/.test(q))return `Los cajeros han recuperado <b>${money(sum(cobros))}</b> en ${cobros.length.toLocaleString('es-MX')} movimientos.`;
+  if(/(top.*cajero|mejor cajero|cajero.*mas|cajero.*más|ranking.*cajero)/.test(q))return `<b>Top de cajeros por recuperación</b>${helpFormatRanking(helpTopRows(cobros,'_cajero','total',10),'total')}`;
+  if(/(top.*conductor|conductor.*mas incidencia|conductor.*más incidencia|ranking.*conductor)/.test(q))return `<b>Conductores con más incidencias generales</b>${helpFormatRanking(helpTopRows(inc,'_conductor','count',10),'count','incidencias')}`;
+  if(/(honestidad.*gener|generado.*honestidad|importe.*honestidad|cuanto.*honestidad|cuánto.*honestidad)/.test(q))return `Las incidencias de <b>Honestidad</b> generan ${money(sum(hon))} en ${hon.length.toLocaleString('es-MX')} registros.`;
+  if(/(top.*honestidad|incidencia.*honestidad|honestidad.*frecuente)/.test(q))return `<b>Incidencias de Honestidad más frecuentes</b>${helpFormatRanking(helpTopRows(hon,'_anomalia','count',10),'count','incidencias')}`;
+  if(/(donde.*honestidad|dónde.*honestidad|lugar.*honestidad|ruta.*honestidad)/.test(q))return `<b>Lugares o rutas con más incidencias de Honestidad</b>${helpFormatRanking(helpTopRows(hon,'_ruta','count',10),'count','incidencias')}`;
+  if(/(pendiente|por cobrar|adeudo)/.test(q))return `El importe <b>pendiente por cobrar</b> es ${money(sum(inc,'_pendiente'))}, distribuido en ${inc.filter(r=>r._pendiente>0).length.toLocaleString('es-MX')} registros.`;
+  if(/(porcentaje|%.*recuper|recuperacion|recuperación)/.test(q)){const gen=sum(inc),rec=gen?sum(cobros)/gen*100:0;return `El porcentaje de recuperación de cajeros frente al importe generado es <b>${rec.toFixed(1)}%</b>.`}
+  if(/(rubros|rubro)/.test(q)){const g=helpTopRows(inc,'_rubro','count',10);return `<b>Incidencias por rubro</b>${helpFormatRanking(g,'count','incidencias')}`}
+  if(/(estatus|status|estado)/.test(q)){const g=helpTopRows(inc,'_estatus','count',10);return `<b>Distribución por estatus</b>${helpFormatRanking(g,'count','registros')}`}
+  if(/(ruta|origen|destino|lugar)/.test(q)){const g=helpTopRows(inc,'_ruta','count',10);return `<b>Rutas con más incidencias</b>${helpFormatRanking(g,'count','incidencias')}`}
+  if(/(otros rubros|diferentes.*honestidad|fuera.*honestidad)/.test(q)){const others=inc.filter(r=>lc(r._rubro)!=='honestidad');return `Hay <b>${others.length.toLocaleString('es-MX')}</b> incidencias en rubros distintos a Honestidad.`}
+  if(/(resumen|panorama|situacion|situación)/.test(q)){const topCash=helpTopRows(cobros,'_cajero','total',1)[0],topDriver=helpTopRows(inc,'_conductor','count',1)[0],topPlace=helpTopRows(hon,'_ruta','count',1)[0];return `<b>Resumen del periodo filtrado</b><ul class="help-answer-list"><li>Total cobrado: ${money(sum(cobros)+sum(otrasCobradas))}</li><li>Generado en Honestidad: ${money(sum(hon))}</li><li>Pendiente: ${money(sum(inc,'_pendiente'))}</li>${topCash?`<li>Mejor cajero: ${helpEscape(topCash.key)} (${money(topCash.total)})</li>`:''}${topDriver?`<li>Conductor con más incidencias: ${helpEscape(topDriver.key)} (${topDriver.count})</li>`:''}${topPlace?`<li>Lugar con más Honestidad: ${helpEscape(topPlace.key)} (${topPlace.count})</li>`:''}</ul>`}
+  if(/(modulo|módulo|donde veo|dónde veo|navegar)/.test(q))return `Usa la barra lateral: <b>Rubros</b> para distribución, <b>Honestidad</b> para sus tendencias, <b>Conductores</b> y <b>Cajeros</b> para rankings, <b>Rutas</b> para origen-destino, <b>Tendencias</b> para comparativos y <b>Reportes</b> para exportar.`;
+  return `No identifiqué completamente la consulta. Puedes preguntar, por ejemplo: <b>“top cajeros”</b>, <b>“total cobrado”</b>, <b>“top conductores”</b>, <b>“lugares de Honestidad”</b>, <b>“incidencias por rubro”</b> o escribir el nombre de un conductor, cajero, autobús o folio.`;
+}
+function helpAsk(question){const text=clean(question);if(!text)return;helpAddMessage('user',helpEscape(text));const typing=helpAddMessage('bot','<span class="help-typing"><i></i><i></i><i></i></span>');setTimeout(()=>{typing?.remove();helpAddMessage('bot',helpAnswer(text))},320)}
+function setupHelpChat(){
+  const panel=$('#helpChat'),input=$('#helpChatInput');if(!panel)return;
+  const open=()=>{panel.classList.add('open');panel.setAttribute('aria-hidden','false');helpWelcome();setTimeout(()=>input?.focus(),180)};
+  const close=()=>{panel.classList.remove('open');panel.setAttribute('aria-hidden','true')};
+  on('#helpBusBtn','click',()=>panel.classList.contains('open')?close():open());on('#helpChatClose','click',close);
+  on('#helpChatForm','submit',e=>{e.preventDefault();helpAsk(input.value);input.value=''});
+  $$('#helpSuggestions [data-question]').forEach(btn=>btn.addEventListener('click',()=>helpAsk(btn.dataset.question)));
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&panel.classList.contains('open'))close()});
+}
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',setupHelpChat,{once:true})}else{setupHelpChat()}
