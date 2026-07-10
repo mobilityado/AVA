@@ -1,14 +1,9 @@
-# Centro de Inteligencia AVA v33
+# Centro de Inteligencia AVA v34
 
-Versión enfocada en la operación real:
-- Recuperación por cajero (TRT y SUR).
-- Importe generado por conductores en Honestidad.
-- Importe e incidencias por cada rubro.
-- Tendencias mensuales y anuales separadas por rubro.
-- Top de cajeros, conductores, incidencias de Honestidad y lugares.
-- Rutas, resumen inteligente, reportes y tema claro/oscuro.
+Correcciones:
+- Se corrigieron errores de sintaxis que impedían iniciar el dashboard.
+- La pantalla de carga ahora se cierra correctamente.
+- Se agregó autobús animado visible y barra de progreso.
+- Conserva tema claro/oscuro y todos los módulos operativos.
 
-## Publicación
-Sube `index.html`, las carpetas `css` y `js` a la raíz del repositorio de GitHub Pages. Después usa Ctrl+F5.
-
-No requiere cambios al Apps Script si la acción `datos` devuelve las cuatro hojas TRT, SUR, AVATRT y AVASUR con sus encabezados actuales.
+Sube `index.html` y las carpetas `css` y `js` a la raíz de GitHub Pages. Después usa Ctrl + F5.
