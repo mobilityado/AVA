@@ -1,24 +1,34 @@
-# Centro de Inteligencia AVA v21
+# Centro de Inteligencia AVA v30
 
-Proyecto estático listo para GitHub Pages.
+Versión ejecutiva modular para GitHub Pages.
 
 ## Incluye
-- Dashboard Ejecutivo con KPIs, gauge, donut y pronóstico.
-- Módulo Conductores con historial y búsqueda.
-- Módulo Cajeros con desempeño y recuperación.
-- Módulo Rutas con origen-destino más concurrido.
-- Tendencias diarias, mensuales y anuales.
-- Resumen inteligente automático.
-- Reportes a Excel y PDF.
-- Configuración de meta mensual, umbral de alertas y tema claro/oscuro.
-- Panel lateral de detalle al hacer clic en conductor/cajero/ruta.
-- Diseño responsive para celular y tablet.
 
-## Instalación
-1. Descomprime el ZIP.
-2. Sube todos los archivos a tu repositorio de GitHub.
-3. Activa GitHub Pages desde Settings > Pages.
-4. Abre la página y presiona Ctrl + F5 para limpiar caché.
+- Dashboard ejecutivo con KPIs, gauge, donut y pronóstico.
+- Módulos: Conductores, Cajeros, Rutas, Tendencias, Resumen inteligente, Reportes y Configuración.
+- Búsqueda global por conductor, cajero, autobús, folio, origen, destino y estatus.
+- Modo claro / oscuro.
+- Actualización automática configurable.
+- Exportación a PDF, Excel y CSV.
+- Panel lateral de detalle al hacer clic en cajeros, conductores o rutas.
+- Origen-destino más concurrido.
+- Alertas por adeudos mayores al umbral configurado.
+
+## Uso
+
+1. Sube todos los archivos a tu repositorio de GitHub.
+2. Activa GitHub Pages en Settings > Pages.
+3. Abre la página y presiona Ctrl + F5.
 
 ## Conexión
-La URL de Apps Script está en `js/app.js`, variable `API`.
+
+El archivo `js/app.js` ya apunta a tu Apps Script:
+
+https://script.google.com/macros/s/AKfycbxpX9FNMZZDL72L76vS4keCiWC3xPb79_cMkpcBk0_AqktKHizk7j5A6r53brRN9y9d/exec
+
+Lee las hojas:
+
+- TRT
+- SUR
+- AVATRT
+- AVASUR

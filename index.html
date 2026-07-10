@@ -1,83 +1,85 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Centro de Inteligencia AVA</title>
   <link rel="stylesheet" href="css/styles.css" />
-  <link rel="manifest" href="manifest.json" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/html2pdf.js/dist/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
-  <div id="splash"><div class="splash-card"><div class="bus-logo">🚌</div><h1>Centro de Inteligencia AVA</h1><p>Sincronizando indicadores ejecutivos...</p><div class="loader"></div></div></div>
+  <div id="splash" class="splash"><div class="bus">🚌</div><h1>Centro de Inteligencia AVA</h1><span></span></div>
   <aside class="sidebar">
-    <div class="brand"><div class="brand-icon">🚌</div><div><strong>AVA</strong><span>Inteligencia Ejecutiva</span></div></div>
+    <div class="brand"><div class="brand-icon">🚌</div><div><b>AVA</b><small>Centro de Inteligencia</small></div></div>
     <nav>
-      <button class="nav active" data-section="dashboard">📊 Dashboard</button>
-      <button class="nav" data-section="conductores">🚌 Conductores</button>
-      <button class="nav" data-section="cajeros">💰 Cajeros</button>
-      <button class="nav" data-section="rutas">🗺️ Rutas</button>
-      <button class="nav" data-section="tendencias">📈 Tendencias</button>
-      <button class="nav" data-section="ia">🤖 Resumen IA</button>
-      <button class="nav" data-section="reportes">📄 Reportes</button>
-      <button class="nav" data-section="config">⚙️ Configuración</button>
+      <button class="nav active" data-view="dashboard">📊 Dashboard</button>
+      <button class="nav" data-view="conductores">🚌 Conductores</button>
+      <button class="nav" data-view="cajeros">💰 Cajeros</button>
+      <button class="nav" data-view="rutas">🗺️ Rutas</button>
+      <button class="nav" data-view="tendencias">📈 Tendencias</button>
+      <button class="nav" data-view="insights">🤖 Resumen inteligente</button>
+      <button class="nav" data-view="reportes">📄 Reportes</button>
+      <button class="nav" data-view="config">⚙️ Configuración</button>
     </nav>
-    <div class="sidebar-footer"><span id="syncBadge">● Sincronizando</span></div>
+    <div class="sync"><span id="syncDot"></span><small id="syncText">Esperando datos</small></div>
   </aside>
 
-  <main class="app" id="printArea">
+  <main class="app" id="captureArea">
     <header class="topbar">
-      <div><h1 id="pageTitle">Dashboard Ejecutivo</h1><p>KPIs, pronósticos, alertas y desempeño AVA</p></div>
+      <div><h1 id="pageTitle">Dashboard Ejecutivo</h1><p>Recuperación, adeudos, tendencias y análisis operativo AVA.</p></div>
       <div class="actions">
-        <input id="globalSearch" placeholder="Buscar conductor, autobús, folio, ruta..." />
-        <button id="themeBtn" class="ghost">🌓</button>
-        <button id="refreshBtn" class="primary">Actualizar</button>
+        <button id="themeBtn" class="btn ghost">🌓 Tema</button>
+        <button id="refreshBtn" class="btn">Actualizar</button>
+        <button id="pdfBtn" class="btn primary">PDF</button>
       </div>
     </header>
 
     <section class="filters card">
-      <select id="empresaFilter"><option value="TODAS">Todas las empresas</option><option value="TRT">TRT</option><option value="SUR">SUR</option></select>
-      <select id="tipoFilter"><option value="TODOS">Cobrado y adeudo</option><option value="COBRADO">Solo cobrado</option><option value="ADEUDO">Solo adeudo</option></select>
-      <select id="estatusFilter"><option value="TODOS">Todos los estatus</option></select>
-      <input type="date" id="desdeFilter" />
-      <input type="date" id="hastaFilter" />
-      <button id="clearFilters" class="ghost">Limpiar filtros</button>
+      <label>Empresa<select id="fEmpresa"><option value="TODAS">Todas</option><option>TRT</option><option>SUR</option></select></label>
+      <label>Tipo<select id="fTipo"><option value="TODOS">Todos</option><option value="COBRADO">Cobrado</option><option value="ADEUDO">Adeudo</option></select></label>
+      <label>Estatus<select id="fEstatus"><option value="TODOS">Todos</option></select></label>
+      <label>Desde<input id="fDesde" type="date"></label>
+      <label>Hasta<input id="fHasta" type="date"></label>
+      <label>Búsqueda global<input id="fSearch" placeholder="Conductor, cajero, autobús, folio, origen o destino"></label>
+      <button id="clearBtn" class="btn ghost">Limpiar</button>
     </section>
 
-    <section id="dashboard" class="section active">
-      <div class="kpi-grid">
-        <div class="kpi card"><span>Total cobrado</span><strong id="kpiCobrado">$0</strong><small id="deltaCobrado">—</small></div>
-        <div class="kpi card danger"><span>Total adeudo</span><strong id="kpiAdeudo">$0</strong><small id="deltaAdeudo">—</small></div>
-        <div class="kpi card"><span>% Recuperación</span><strong id="kpiRecuperacion">0%</strong><small>cobrado / total AVA</small></div>
-        <div class="kpi card"><span>Pronóstico cierre</span><strong id="kpiPronostico">$0</strong><small>estimado mensual</small></div>
+    <section id="dashboard" class="view active">
+      <div class="kpis">
+        <div class="kpi"><span>Total cobrado</span><b id="kCobrado">$0</b><small id="kCobradoTrend">—</small></div>
+        <div class="kpi danger"><span>Total adeudo</span><b id="kAdeudo">$0</b><small id="kAdeudoTrend">—</small></div>
+        <div class="kpi"><span>% recuperación</span><b id="kRec">0%</b><small>cobrado / total AVA</small></div>
+        <div class="kpi warn"><span>Alertas críticas</span><b id="kAlertas">0</b><small>según umbral</small></div>
       </div>
-      <div class="grid-2">
-        <div class="card gauge-card"><h3>Velocímetro de recuperación</h3><canvas id="gaugeChart"></canvas><div class="gauge-center"><b id="gaugeValue">0%</b><span>Recuperación</span></div></div>
-        <div class="card"><h3>Cobrado vs Adeudo</h3><canvas id="donutChart"></canvas><div id="donutLegend" class="legend-list"></div></div>
+      <div class="grid two">
+        <div class="card gauge-card"><h2>Velocímetro de recuperación</h2><canvas id="gaugeChart"></canvas><div class="gauge-value" id="gaugeValue">0%</div></div>
+        <div class="card"><h2>Cobrado vs adeudo</h2><canvas id="donutChart"></canvas></div>
       </div>
-      <div class="grid-2">
-        <div class="card"><h3>Comparativo mensual</h3><canvas id="monthlyChart"></canvas></div>
-        <div class="card"><h3>Comparativo anual</h3><canvas id="annualChart"></canvas></div>
+      <div class="grid two">
+        <div class="card"><h2>Tendencia mensual</h2><canvas id="monthlyChart"></canvas></div>
+        <div class="card"><h2>Comparativo anual</h2><canvas id="annualChart"></canvas></div>
       </div>
-      <div class="grid-2">
-        <div class="card"><h3>Top conductores con mayor adeudo</h3><div id="topConductores" class="ranking"></div></div>
-        <div class="card"><h3>Top cajeros con mayor recuperación</h3><div id="topCajeros" class="ranking"></div></div>
+      <div class="grid two">
+        <div class="card"><h2>Top 10 cajeros con mayor recuperación</h2><div id="topCajeros" class="rank"></div></div>
+        <div class="card"><h2>Top 10 conductores con mayor adeudo</h2><div id="topConductores" class="rank"></div></div>
       </div>
-      <div class="card"><h3>Centro de alertas</h3><div id="alerts" class="alerts"></div></div>
+      <div class="card"><h2>Alertas visuales</h2><div id="alerts" class="alerts"></div></div>
     </section>
 
-    <section id="conductores" class="section"><div class="module-head"><h2>Conductores</h2><p>Historial, adeudos, cobros y búsqueda avanzada.</p></div><div id="conductoresList" class="table-card card"></div></section>
-    <section id="cajeros" class="section"><div class="module-head"><h2>Cajeros</h2><p>Desempeño, recuperación y ranking.</p></div><div class="grid-2"><div class="card"><canvas id="cajerosChart"></canvas></div><div id="cajerosList" class="table-card card"></div></div></section>
-    <section id="rutas" class="section"><div class="module-head"><h2>Rutas</h2><p>Origen-destino más concurrido, recuperación y adeudos.</p></div><div class="grid-2"><div class="card"><canvas id="rutasChart"></canvas></div><div id="rutasList" class="table-card card"></div></div></section>
-    <section id="tendencias" class="section"><div class="module-head"><h2>Tendencias</h2><p>Evolución diaria, mensual y anual.</p></div><div class="grid-1"><div class="card"><canvas id="trendChart"></canvas></div></div><div class="card"><h3>Mapa de calor por estatus y cajero</h3><div id="heatmap" class="heatmap"></div></div></section>
-    <section id="ia" class="section"><div class="module-head"><h2>Resumen inteligente</h2><p>Insights automáticos basados en tus datos actuales.</p></div><div class="card executive-summary" id="aiSummary"></div></section>
-    <section id="reportes" class="section"><div class="module-head"><h2>Reportes</h2><p>Exportación corporativa para gerencia.</p></div><div class="card report-actions"><button id="excelBtn" class="primary">Exportar Excel</button><button id="pdfBtn" class="primary">Exportar PDF</button><button onclick="window.print()" class="ghost">Imprimir</button></div><div id="reportTable" class="table-card card"></div></section>
-    <section id="config" class="section"><div class="module-head"><h2>Configuración</h2><p>Metas, umbrales y apariencia.</p></div><div class="card config-grid"><label>Meta mensual <input id="metaMensual" type="number" /></label><label>Alerta adeudo mayor a <input id="umbralAdeudo" type="number" /></label><label>Refresco automático <select id="autoRefresh"><option value="0">Desactivado</option><option value="300000">Cada 5 minutos</option><option value="900000">Cada 15 minutos</option></select></label><button id="saveConfig" class="primary">Guardar configuración</button></div></section>
+    <section id="conductores" class="view"><div class="card"><h2>Conductores</h2><div id="driversList" class="entity-list"></div></div></section>
+    <section id="cajeros" class="view"><div class="card"><h2>Cajeros</h2><div id="cashiersList" class="entity-list"></div></div></section>
+    <section id="rutas" class="view"><div class="grid two"><div class="card"><h2>Origen → destino más concurrido</h2><div id="routesList" class="rank"></div></div><div class="card"><h2>Análisis por ruta</h2><canvas id="routesChart"></canvas></div></div></section>
+    <section id="tendencias" class="view"><div class="grid two"><div class="card"><h2>Pronóstico al cierre del mes</h2><div id="forecastBox" class="forecast"></div></div><div class="card"><h2>Estatus</h2><canvas id="statusChart"></canvas></div></div><div class="card"><h2>Mapa de calor: estatus por cajero</h2><div id="heatmap" class="heatmap"></div></div></section>
+    <section id="insights" class="view"><div class="card"><h2>Resumen inteligente</h2><div id="insightsBox" class="insights"></div></div></section>
+    <section id="reportes" class="view"><div class="card"><h2>Reportes corporativos</h2><p>Exporta el tablero ejecutivo filtrado.</p><button id="excelBtn" class="btn primary">Exportar Excel</button><button id="csvBtn" class="btn">Exportar CSV</button><button id="pdfBtn2" class="btn">Exportar PDF</button><div class="table-wrap"><table id="dataTable"><thead></thead><tbody></tbody></table></div></div></section>
+    <section id="config" class="view"><div class="card"><h2>Configuración</h2><label>Meta mensual de recuperación<input id="cfgMeta" type="number" value="50000"></label><label>Umbral de alerta por adeudo<input id="cfgUmbral" type="number" value="10000"></label><label>Actualización automática<select id="cfgRefresh"><option value="60000">Cada 60 segundos</option><option value="300000">Cada 5 minutos</option><option value="0">Desactivada</option></select></label><button id="saveCfg" class="btn primary">Guardar configuración</button></div></section>
   </main>
 
-  <div id="detailPanel" class="detail-panel"><button id="closeDetail">×</button><div id="detailContent"></div></div>
+  <div id="detailPanel" class="detail"><button id="closeDetail">×</button><div id="detailContent"></div></div>
+  <div id="toast" class="toast"></div>
   <script src="js/app.js"></script>
 </body>
 </html>
