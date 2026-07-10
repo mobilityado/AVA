@@ -1,58 +1,28 @@
-# CIO AVA v43 — Acceso por usuarios y roles
+# CIO AVA v44 — Nombre, bienvenida y último acceso
 
-Esta versión agrega inicio de sesión conectado con la pestaña `USUARIOS` del mismo Google Sheet.
+Esta versión usa la nueva columna `NOMBRE` de la pestaña `USUARIOS`.
 
-## Estructura requerida en Google Sheets
+## Columnas requeridas
 
-La pestaña debe llamarse exactamente `USUARIOS` y tener estas columnas en la fila 1:
+`USUARIO | CONTRASEÑA | TIPO DE CUENTA | NOMBRE`
 
-- `USUARIO`
-- `CONTRASEÑA`
-- `TIPO DE CUENTA`
+## Mejoras
 
-Tipos admitidos:
+- El selector muestra el nombre completo y conserva el usuario como identificador de acceso.
+- Después de iniciar sesión aparece una bienvenida con el nombre de la persona.
+- El encabezado muestra nombre, rol y último acceso.
+- El Apps Script registra el último acceso por usuario.
+- Se mantienen los permisos: `USUARIO` no recibe información de cajeros; `ADMINISTRADOR` ve todo.
+- Incluye botón Cerrar sesión, PWA, temas, reportes y módulos existentes.
 
-- `USUARIO`: puede ver todo excepto información de cajeros.
-- `ADMINISTRADOR`: puede ver todos los módulos, rankings, nombres y reportes de cajeros.
+## Instalación
 
-## 1. Actualizar Google Apps Script
+1. Reemplaza el Apps Script con `Code.gs`.
+2. Guarda y crea una **nueva versión** de la implementación web.
+3. Conserva la misma URL `/exec`, ejecución como propietario y acceso para cualquier usuario.
+4. Sube todo el contenido de este proyecto a GitHub Pages.
+5. Abre con `Ctrl + F5`; si la PWA conserva una versión anterior, elimina el Service Worker y los datos del sitio.
 
-1. Abre el Google Sheet.
-2. Ve a **Extensiones → Apps Script**.
-3. Reemplaza el contenido de `Code.gs` con el archivo `Code.gs` incluido en este proyecto.
-4. Guarda.
-5. Ve a **Implementar → Administrar implementaciones**.
-6. Edita la implementación actual, selecciona **Nueva versión** y pulsa **Implementar**.
-7. Conserva el acceso como **Cualquier usuario** y ejecución como propietario.
+## Nota
 
-La URL puede seguir siendo la misma si actualizas la implementación existente.
-
-## 2. Publicar en GitHub Pages
-
-Sube a la raíz del repositorio:
-
-- `index.html`
-- `Code.gs` solo como respaldo/documentación; GitHub no lo ejecuta.
-- `css/`
-- `js/`
-- `assets/`
-- `manifest.webmanifest`
-- `service-worker.js`
-
-Después abre la página con **Ctrl + F5**. En celular, borra la caché de la PWA si todavía aparece la versión anterior.
-
-## Protección aplicada
-
-Para cuentas `USUARIO` se bloquea y se elimina desde el servidor:
-
-- Módulo Cajeros.
-- Top 10 y ranking de cajeros.
-- Nombres de cajeros en búsquedas, tablas y exportaciones.
-- Consultas sobre cajeros en el Autobús de Ayuda.
-- Detalle individual de cajeros.
-
-No se limita solo a ocultar HTML: el Apps Script quita las columnas de cajero antes de enviar la información.
-
-## Recomendación de seguridad
-
-Cambia las contraseñas de ejemplo antes de publicar. Evita contraseñas compartidas y usa una distinta para cada persona. La sesión dura hasta 6 horas y se guarda únicamente en la pestaña actual del navegador.
+Si `NOMBRE` está vacío o contiene `-`, el sistema utilizará el valor de `USUARIO` como nombre visible.

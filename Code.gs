@@ -1,7 +1,7 @@
 /**
- * CIO AVA v43 — API con autenticación y roles
+ * CIO AVA v44 — API con nombre, bienvenida y roles
  * Hoja requerida: USUARIOS
- * Columnas: USUARIO | CONTRASEÑA | TIPO DE CUENTA
+ * Columnas: USUARIO | CONTRASEÑA | TIPO DE CUENTA | NOMBRE
  */
 const ID_SHEET = '1wD0bEDZznFkTmcvcRu1sGpHreataA5vpU0-ce2zVMlk';
 const HOJA_USUARIOS = 'USUARIOS';
@@ -14,7 +14,7 @@ function doGet(e) {
   const p = e.parameter || {};
   const accion = String(p.accion || 'inicio').toLowerCase();
   try {
-    if (accion === 'inicio') return respuesta({ error: false, mensaje: 'API CIO AVA v43 activa', autenticacion: true });
+    if (accion === 'inicio') return respuesta({ error: false, mensaje: 'API CIO AVA v44 activa', autenticacion: true });
     if (accion === 'usuarios') return listarUsuarios();
     if (accion === 'sesion') return validarSesionPublica(p.token);
     if (accion === 'datos') return obtenerDatosSeguro(p.hoja, p.token);
@@ -37,7 +37,7 @@ function doPost(e) {
 }
 
 function listarUsuarios() {
-  const usuarios = leerUsuarios_().map(u => u.usuario).filter(Boolean);
+  const usuarios = leerUsuarios_().map(u => ({ usuario: u.usuario, nombre: u.nombre || u.usuario })).filter(u => u.usuario);
   return respuesta({ error: false, usuarios: usuarios });
 }
 
@@ -55,15 +55,34 @@ function iniciarSesion(usuario, contrasena) {
   const rol = registro.rol === 'ADMINISTRADOR' ? 'ADMINISTRADOR' : 'USUARIO';
   const token = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
   const ahora = Date.now();
-  const sesion = { usuario: usuario, rol: rol, creada: ahora, expira: ahora + DURACION_SESION_SEGUNDOS * 1000 };
+  const props = PropertiesService.getScriptProperties();
+  const claveUltimo = 'CIO_AVA_LAST_' + usuario;
+  const ultimoAcceso = Number(props.getProperty(claveUltimo) || 0) || null;
+  props.setProperty(claveUltimo, String(ahora));
+  const sesion = {
+    usuario: usuario,
+    nombre: registro.nombre || usuario,
+    rol: rol,
+    ultimoAcceso: ultimoAcceso,
+    creada: ahora,
+    expira: ahora + DURACION_SESION_SEGUNDOS * 1000
+  };
   CacheService.getScriptCache().put(PREFIJO_SESION + token, JSON.stringify(sesion), DURACION_SESION_SEGUNDOS);
-  return respuesta({ autorizado: true, token: token, usuario: usuario, rol: rol, expira: sesion.expira });
+  return respuesta({
+    autorizado: true,
+    token: token,
+    usuario: usuario,
+    nombre: sesion.nombre,
+    rol: rol,
+    ultimoAcceso: ultimoAcceso,
+    expira: sesion.expira
+  });
 }
 
 function validarSesionPublica(token) {
   const sesion = obtenerSesion_(token);
   if (!sesion) return respuesta({ autorizado: false, codigo: 'SESION_INVALIDA', mensaje: 'La sesión no existe o expiró.' });
-  return respuesta({ autorizado: true, usuario: sesion.usuario, rol: sesion.rol, expira: sesion.expira });
+  return respuesta({ autorizado: true, usuario: sesion.usuario, nombre: sesion.nombre || sesion.usuario, rol: sesion.rol, ultimoAcceso: sesion.ultimoAcceso || null, expira: sesion.expira });
 }
 
 function cerrarSesion(token) {
@@ -109,12 +128,14 @@ function leerUsuarios_() {
   const iu = headers.indexOf('USUARIO');
   const ip = headers.indexOf('CONTRASENA');
   const ir = headers.indexOf('TIPO DE CUENTA');
+  const inombre = headers.indexOf('NOMBRE');
   if (iu < 0 || ip < 0 || ir < 0) throw new Error('USUARIOS debe contener USUARIO, CONTRASEÑA y TIPO DE CUENTA.');
 
   return valores.slice(1).map(f => ({
     usuario: normalizarTexto_(f[iu]).toUpperCase(),
     contrasena: normalizarContrasena_(f[ip]),
-    rol: normalizarTexto_(f[ir]).toUpperCase()
+    rol: normalizarTexto_(f[ir]).toUpperCase(),
+    nombre: inombre >= 0 ? normalizarTexto_(f[inombre]).replace(/\s+/g, ' ') : ''
   })).filter(u => u.usuario && u.contrasena);
 }
 
