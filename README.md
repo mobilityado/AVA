@@ -1,13 +1,9 @@
-# Centro de Inteligencia AVA v35
+# Centro de Inteligencia AVA v37
 
-Corrección de arranque:
-- La pantalla de carga se retira automáticamente aunque falle la conexión o una librería externa.
-- El autobús se mantiene alineado y animado.
-- La navegación de módulos se inicializa antes de cargar Google Sheets.
-- Se agregó manejo de errores y recuperación de configuración dañada en el navegador.
+Cambios en el módulo Rubros:
+- La gráfica de importe fue reemplazada por una gráfica de pastel con la distribución de incidencias.
+- Honestidad conserva importe en pesos y número de incidencias.
+- Los demás rubros muestran únicamente el número de incidencias.
+- Se conserva el diseño y la conexión de la versión anterior.
 
-Sube `index.html` y las carpetas `css` y `js` a la raíz del repositorio. Luego usa Ctrl + F5.
-
-
-## Cambio v36
-El KPI **Otros rubros** ahora muestra el número de incidencias distintas a Honestidad, no un importe monetario.
+Sube todos los archivos y carpetas a GitHub Pages y actualiza con Ctrl + F5.
