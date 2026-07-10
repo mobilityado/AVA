@@ -1,9 +1,9 @@
-# Centro de Inteligencia AVA v34
+# Centro de Inteligencia AVA v35
 
-Correcciones:
-- Se corrigieron errores de sintaxis que impedían iniciar el dashboard.
-- La pantalla de carga ahora se cierra correctamente.
-- Se agregó autobús animado visible y barra de progreso.
-- Conserva tema claro/oscuro y todos los módulos operativos.
+Corrección de arranque:
+- La pantalla de carga se retira automáticamente aunque falle la conexión o una librería externa.
+- El autobús se mantiene alineado y animado.
+- La navegación de módulos se inicializa antes de cargar Google Sheets.
+- Se agregó manejo de errores y recuperación de configuración dañada en el navegador.
 
-Sube `index.html` y las carpetas `css` y `js` a la raíz de GitHub Pages. Después usa Ctrl + F5.
+Sube `index.html` y las carpetas `css` y `js` a la raíz del repositorio. Luego usa Ctrl + F5.

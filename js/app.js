@@ -1,6 +1,8 @@
 const API='https://script.google.com/macros/s/AKfycbxpX9FNMZZDL72L76vS4keCiWC3xPb79_cMkpcBk0_AqktKHizk7j5A6r53brRN9y9d/exec';
 const SHEETS=[['TRT','COBRO','TRT'],['SUR','COBRO','SUR'],['AVATRT','INCIDENCIA','TRT'],['AVASUR','INCIDENCIA','SUR']];let raw=[],filtered=[],charts={},timer=null;
-let cfg=JSON.parse(localStorage.getItem('avaCfg')||'{"meta":50000,"umbral":10000,"refresh":60000,"theme":"light"}');
+let cfg;try{cfg=JSON.parse(localStorage.getItem('avaCfg')||'{"meta":50000,"umbral":10000,"refresh":60000,"theme":"light"}')}catch(_){cfg={meta:50000,umbral:10000,refresh:60000,theme:'light'}};
+function hideSplash(){if(typeof window.forceCloseAvaSplash==='function'){window.forceCloseAvaSplash();return}const sp=document.querySelector('#splash');if(sp){sp.classList.add('hide');setTimeout(()=>sp.remove(),550)}}
+function on(sel,event,fn){const el=$(sel);if(el)el.addEventListener(event,fn)}
 const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s),money=n=>(+n||0).toLocaleString('es-MX',{style:'currency',currency:'MXN'}),clean=s=>String(s??'').trim(),lc=s=>clean(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''),num=n=>Number(String(n??'').replace(/[$,%\s,]/g,''))||0;
 const pick=(o,ks)=>{const m={};Object.keys(o||{}).forEach(k=>m[lc(k)]=o[k]);for(const k of ks){let v=m[lc(k)];if(v!==undefined&&v!==null&&clean(v)!=='')return v}return''};
 function parseDate(v){if(!v)return null;if(v instanceof Date)return v;const s=clean(v);let d=new Date(s);if(!isNaN(d)&&d.getFullYear()>2020&&d.getFullYear()<2036)return d;let m=s.match(/(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})/);if(m){let y=+m[3];if(y<100)y+=2000;d=new Date(y,+m[2]-1,+m[1]);if(y>2020&&y<2036)return d}return null}
@@ -33,5 +35,27 @@ function exportCSV(){const h=['Clase','Empresa','Rubro','Estatus','Fecha','Condu
 function exportExcel(){const data=filtered.map(r=>({Clase:r._clase,Empresa:r._empresa,Rubro:r._rubro,Estatus:r._estatus,Fecha:r._fecha?r._fecha.toLocaleDateString('es-MX'):'',Conductor:r._conductor,Cajero:r._cajero,Autobus:r._autobus,Folio:r._folio,Anomalia:r._anomalia,Ruta:r._ruta,Monto:r._monto})),w=XLSX.utils.book_new();XLSX.utils.book_append_sheet(w,XLSX.utils.json_to_sheet(data),'AVA');XLSX.writeFile(w,'reporte-ava.xlsx')}
 async function exportPDF(){const{jsPDF}=window.jspdf,canvas=await html2canvas($('#captureArea'),{scale:1.1,useCORS:true}),pdf=new jsPDF('p','mm','a4'),w=210,h=canvas.height*w/canvas.width;pdf.text('Centro de Inteligencia AVA',14,12);pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,18,w,h);pdf.save('reporte-ava.pdf')}
 function download(b,n){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click();URL.revokeObjectURL(a.href)}function toast(t){$('#toast').textContent=t;$('#toast').classList.add('show');setTimeout(()=>$('#toast').classList.remove('show'),2200)}
-function setup(){window.addEventListener('error',()=>{const sp=document.querySelector('#splash');if(sp)sp.classList.add('hide')});document.body.className=cfg.theme==='dark'?'dark':'light';$('#cfgMeta').value=cfg.meta;$('#cfgUmbral').value=cfg.umbral;$('#cfgRefresh').value=cfg.refresh;$$('.nav').forEach(b=>b.onclick=()=>{$$('.nav').forEach(x=>x.classList.remove('active'));b.classList.add('active');$$('.view').forEach(v=>v.classList.remove('active'));$('#'+b.dataset.view).classList.add('active');$('#pageTitle').textContent=b.textContent.trim().replace(/^[^A-Za-zÁÉÍÓÚÑ]+/,'')});['#fEmpresa','#fRubro','#fEstatus','#fDesde','#fHasta','#fSearch'].forEach(s=>$(s).addEventListener('input',applyFilters));$('#clearBtn').onclick=()=>{$('#fEmpresa').value='TODAS';$('#fRubro').value='TODOS';$('#fEstatus').value='TODOS';$('#fDesde').value='';$('#fHasta').value='';$('#fSearch').value='';applyFilters()};$('#themeBtn').onclick=()=>{document.body.classList.toggle('dark');document.body.classList.toggle('light');cfg.theme=document.body.classList.contains('dark')?'dark':'light';localStorage.setItem('avaCfg',JSON.stringify(cfg));renderAll()};$('#refreshBtn').onclick=loadData;$('#saveCfg').onclick=()=>{cfg.meta=num($('#cfgMeta').value);cfg.umbral=num($('#cfgUmbral').value);cfg.refresh=num($('#cfgRefresh').value);localStorage.setItem('avaCfg',JSON.stringify(cfg));startTimer();renderAll();toast('Configuración guardada')};$('#csvBtn').onclick=exportCSV;$('#excelBtn').onclick=exportExcel;$('#pdfBtn').onclick=exportPDF;$('#pdfBtn2').onclick=exportPDF;$('#closeDetail').onclick=()=>$('#detailPanel').classList.remove('open');document.body.addEventListener('click',e=>{const x=e.target.closest('[data-type][data-key]');if(x)openDetail(x.dataset.type,x.dataset.key)});setTimeout(()=>$('#splash').classList.add('hide'),1400);startTimer();loadData().finally(()=>setTimeout(()=>$('#splash').classList.add('hide'),200))}
-function startTimer(){if(timer)clearInterval(timer);if(cfg.refresh>0)timer=setInterval(loadData,cfg.refresh)}setup();
+function setup(){
+  try{
+    window.addEventListener('error',e=>{console.error('AVA runtime error:',e.error||e.message);hideSplash()});
+    window.addEventListener('unhandledrejection',e=>{console.error('AVA promise error:',e.reason);hideSplash()});
+    document.body.className=cfg.theme==='dark'?'dark':'light';
+    if($('#cfgMeta')) $('#cfgMeta').value=cfg.meta;
+    if($('#cfgUmbral')) $('#cfgUmbral').value=cfg.umbral;
+    if($('#cfgRefresh')) $('#cfgRefresh').value=cfg.refresh;
+    $$('.nav').forEach(b=>b.onclick=()=>{$$('.nav').forEach(x=>x.classList.remove('active'));b.classList.add('active');$$('.view').forEach(v=>v.classList.remove('active'));const target=$('#'+b.dataset.view);if(target)target.classList.add('active');if($('#pageTitle'))$('#pageTitle').textContent=b.textContent.trim().replace(/^[^A-Za-zÁÉÍÓÚÑ]+/,'')});
+    ['#fEmpresa','#fRubro','#fEstatus','#fDesde','#fHasta','#fSearch'].forEach(sel=>{const el=$(sel);if(el)el.addEventListener('input',applyFilters)});
+    on('#clearBtn','click',()=>{$('#fEmpresa').value='TODAS';$('#fRubro').value='TODOS';$('#fEstatus').value='TODOS';$('#fDesde').value='';$('#fHasta').value='';$('#fSearch').value='';applyFilters()});
+    on('#themeBtn','click',()=>{document.body.classList.toggle('dark');document.body.classList.toggle('light');cfg.theme=document.body.classList.contains('dark')?'dark':'light';localStorage.setItem('avaCfg',JSON.stringify(cfg));if(raw.length)renderAll()});
+    on('#refreshBtn','click',loadData);
+    on('#saveCfg','click',()=>{cfg.meta=num($('#cfgMeta').value);cfg.umbral=num($('#cfgUmbral').value);cfg.refresh=num($('#cfgRefresh').value);localStorage.setItem('avaCfg',JSON.stringify(cfg));startTimer();if(raw.length)renderAll();toast('Configuración guardada')});
+    on('#csvBtn','click',exportCSV);on('#excelBtn','click',exportExcel);on('#pdfBtn','click',exportPDF);on('#pdfBtn2','click',exportPDF);
+    on('#closeDetail','click',()=>$('#detailPanel')?.classList.remove('open'));
+    document.body.addEventListener('click',e=>{const x=e.target.closest('[data-type][data-key]');if(x)openDetail(x.dataset.type,x.dataset.key)});
+    setTimeout(hideSplash,900);
+    startTimer();
+    loadData().catch(console.error).finally(()=>setTimeout(hideSplash,120));
+  }catch(e){console.error('No se pudo iniciar AVA:',e);hideSplash();setSync('Error de inicio',false,true)}
+}
+function startTimer(){if(timer)clearInterval(timer);if(cfg.refresh>0)timer=setInterval(loadData,cfg.refresh)}
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',setup,{once:true})}else{setup()}

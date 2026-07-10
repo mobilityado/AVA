@@ -1,5 +1,17 @@
 <!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Centro de Inteligencia AVA</title><link rel="stylesheet" href="css/styles.css"><script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script><script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script><script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script></head>
-<body class="light"><div id="splash" class="splash"><div class="splash-content"><div class="bus-road"><div class="bus">🚌</div></div><h1>Centro de Inteligencia AVA</h1><p>Preparando indicadores y tendencias</p><span class="loader"></span></div></div>
+<body class="light"><div id="splash" class="splash"><div class="splash-content"><div class="bus-road"><div class="bus">🚌</div></div><h1>Centro de Inteligencia AVA</h1><p>Preparando indicadores y tendencias</p><span class="loader"></span></div></div><script>
+(function(){
+  function forceCloseSplash(){
+    var splash=document.getElementById('splash');
+    if(!splash)return;
+    splash.classList.add('hide');
+    setTimeout(function(){ if(splash && splash.parentNode) splash.parentNode.removeChild(splash); },550);
+  }
+  window.forceCloseAvaSplash=forceCloseSplash;
+  setTimeout(forceCloseSplash,2200);
+  window.addEventListener('load',function(){setTimeout(forceCloseSplash,500);});
+})();
+</script>
 <aside class="sidebar"><div class="brand"><div class="brand-icon">🚌</div><div><b>AVA</b><small>Inteligencia operativa</small></div></div><nav>
 <button class="nav active" data-view="dashboard">📊 Dashboard</button><button class="nav" data-view="rubros">🧩 Rubros</button><button class="nav" data-view="honestidad">🛡️ Honestidad</button><button class="nav" data-view="conductores">🚌 Conductores</button><button class="nav" data-view="cajeros">💰 Cajeros</button><button class="nav" data-view="rutas">🗺️ Rutas</button><button class="nav" data-view="tendencias">📈 Tendencias</button><button class="nav" data-view="insights">🤖 Resumen</button><button class="nav" data-view="reportes">📄 Reportes</button><button class="nav" data-view="config">⚙️ Configuración</button></nav><div class="sync"><span></span><small id="syncText">Esperando datos</small></div></aside>
 <main class="app" id="captureArea"><header class="topbar"><div><h1 id="pageTitle">Dashboard Ejecutivo</h1><p>Recuperación de cajeros, incidencias de conductores, honestidad y análisis por rubro.</p></div><div class="actions"><button id="themeBtn" class="btn ghost">☀️/🌙 Tema</button><button id="refreshBtn" class="btn">Actualizar</button><button id="pdfBtn" class="btn primary">PDF</button></div></header>
@@ -17,4 +29,4 @@
 <section id="insights" class="view"><div class="card"><h2>Resumen inteligente</h2><div id="insightsBox" class="insights"></div></div></section>
 <section id="reportes" class="view"><div class="card"><h2>Reportes corporativos</h2><p>Exporta los datos filtrados y el tablero.</p><button id="excelBtn" class="btn primary">Excel</button><button id="csvBtn" class="btn">CSV</button><button id="pdfBtn2" class="btn">PDF</button><div class="table-wrap"><table id="dataTable"><thead></thead><tbody></tbody></table></div></div></section>
 <section id="config" class="view"><div class="card config-grid"><label>Meta mensual<input id="cfgMeta" type="number" value="50000"></label><label>Umbral de alerta<input id="cfgUmbral" type="number" value="10000"></label><label>Actualización<select id="cfgRefresh"><option value="60000">60 segundos</option><option value="300000">5 minutos</option><option value="0">Desactivada</option></select></label><button id="saveCfg" class="btn primary">Guardar</button></div></section></main>
-<div id="detailPanel" class="detail"><button id="closeDetail">×</button><div id="detailContent"></div></div><div id="toast" class="toast"></div><script src="js/app.js"></script></body></html>
+<div id="detailPanel" class="detail"><button id="closeDetail">×</button><div id="detailContent"></div></div><div id="toast" class="toast"></div><script src="js/app.js" defer></script></body></html>
