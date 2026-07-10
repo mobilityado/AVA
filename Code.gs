@@ -1,5 +1,5 @@
 /**
- * CIO AVA v46 — acceso, roles y administración de usuarios
+ * CIO AVA v1.0 — acceso, roles, administración y auditoría
  * Hoja requerida: USUARIOS
  * Columnas mínimas:
  * USUARIO | CONTRASEÑA | TIPO DE CUENTA | NOMBRE
@@ -9,6 +9,7 @@
  */
 const ID_SHEET = '1wD0bEDZznFkTmcvcRu1sGpHreataA5vpU0-ce2zVMlk';
 const HOJA_USUARIOS = 'USUARIOS';
+const HOJA_AUDITORIA = 'AUDITORIA';
 const HOJAS_DATOS = ['TRT', 'SUR', 'AVATRT', 'AVASUR'];
 const DURACION_SESION_SEGUNDOS = 21600; // 6 horas
 const PREFIJO_SESION = 'CIO_AVA_SESSION_';
@@ -27,6 +28,7 @@ function doGet(e) {
     if (accion === 'sesion') return validarSesionPublica(p.token);
     if (accion === 'datos') return obtenerDatosSeguro(p.hoja, p.token);
     if (accion === 'admin_usuarios') return listarUsuariosAdmin(p.token);
+    if (accion === 'admin_auditoria') return listarAuditoriaAdmin(p.token, p.limite);
     return respuesta({ error: true, mensaje: 'Acción inválida' });
   } catch (error) {
     return respuesta({ error: true, mensaje: error.message || String(error) });
@@ -42,6 +44,7 @@ function doPost(e) {
     if (accion === 'admin_crear_usuario') return crearUsuarioAdmin(body);
     if (accion === 'admin_restaurar_contrasena') return restaurarContrasenaAdmin(body);
     if (accion === 'admin_cambiar_estado') return cambiarEstadoUsuarioAdmin(body);
+    if (accion === 'auditoria') return registrarAuditoriaPublica(body);
     return respuesta({ error: true, mensaje: 'Acción POST inválida' });
   } catch (error) {
     return respuesta({ error: true, mensaje: error.message || String(error) });
@@ -100,6 +103,7 @@ function iniciarSesion(usuario, contrasena, equipo) {
     expira: ahoraMs + DURACION_SESION_SEGUNDOS * 1000
   };
   guardarSesion_(token, sesion);
+  registrarAuditoria_(sesion, 'INICIO_SESION', 'ACCESO', 'Inicio de sesión correcto', equipo);
   return respuesta({
     autorizado: true,
     token: token,
@@ -119,6 +123,8 @@ function validarSesionPublica(token) {
 }
 
 function cerrarSesion(token) {
+  const sesion = obtenerSesion_(token);
+  if (sesion) registrarAuditoria_(sesion, 'CIERRE_SESION', 'ACCESO', 'Cierre de sesión', sesion.equipo || '');
   if (token) eliminarSesion_(String(token));
   return respuesta({ error: false, mensaje: 'Sesión cerrada.' });
 }
@@ -161,6 +167,8 @@ function crearUsuarioAdmin(body) {
   fila[estructura.indices['TOTAL ACCESOS']] = 0;
   fila[estructura.indices['FECHA CREACION']] = new Date();
   hoja.appendRow(fila);
+  const sesion = obtenerSesion_(body.token);
+  registrarAuditoria_(sesion, 'CREAR_USUARIO', 'ADMINISTRACION', 'Creó la cuenta ' + usuario + ' (' + rol + ')', sesion ? sesion.equipo : '');
   return respuesta({ error: false, mensaje: 'Usuario creado correctamente.' });
 }
 
@@ -174,6 +182,7 @@ function restaurarContrasenaAdmin(body) {
   if (!ctx.registro) return respuesta({ error: true, mensaje: 'No se encontró el usuario.' });
   ctx.hoja.getRange(ctx.registro.fila, ctx.estructura.indices['CONTRASEÑA'] + 1).setValue(nueva);
   cerrarSesionesDeUsuario_(usuario, sesion.usuario === usuario ? body.token : null);
+  registrarAuditoria_(sesion, 'CAMBIAR_CONTRASENA', 'ADMINISTRACION', 'Restableció la contraseña de ' + usuario, sesion.equipo || '');
   return respuesta({ error: false, mensaje: 'Contraseña restablecida correctamente.' });
 }
 
@@ -187,7 +196,55 @@ function cambiarEstadoUsuarioAdmin(body) {
   if (!ctx.registro) return respuesta({ error: true, mensaje: 'No se encontró el usuario.' });
   ctx.hoja.getRange(ctx.registro.fila, ctx.estructura.indices['ACTIVO'] + 1).setValue(activo ? 'SI' : 'NO');
   if (!activo) cerrarSesionesDeUsuario_(usuario, null);
+  registrarAuditoria_(sesion, 'CAMBIAR_ESTADO', 'ADMINISTRACION', (activo ? 'Activó' : 'Desactivó') + ' la cuenta ' + usuario, sesion.equipo || '');
   return respuesta({ error: false, mensaje: activo ? 'Usuario activado.' : 'Usuario desactivado.' });
+}
+
+function registrarAuditoriaPublica(body) {
+  const sesion = obtenerSesion_(body.token);
+  if (!sesion) return respuesta({ error: true, codigo: 'SESION_INVALIDA', mensaje: 'La sesión no existe o expiró.' });
+  const accion = normalizarClave_(body.evento || body.tipo || 'ACTIVIDAD').slice(0, 60);
+  const modulo = normalizarTexto_(body.modulo || 'SISTEMA').slice(0, 80);
+  const detalle = normalizarTexto_(body.detalle || '').slice(0, 500);
+  registrarAuditoria_(sesion, accion, modulo, detalle, limpiarEquipo_(body.equipo || sesion.equipo));
+  return respuesta({ error: false });
+}
+
+function listarAuditoriaAdmin(token, limite) {
+  exigirAdministrador_(token);
+  const hoja = obtenerHojaAuditoria_();
+  const valores = hoja.getDataRange().getValues();
+  const max = Math.min(Math.max(Number(limite || 500), 1), 2000);
+  if (valores.length < 2) return respuesta({ error: false, registros: [] });
+  const rows = valores.slice(1).filter(r => r.some(v => v !== '' && v !== null)).slice(-max).reverse();
+  const registros = rows.map(r => ({
+    fecha: serializarFecha_(r[0]), usuario: normalizarTexto_(r[1]), nombre: normalizarTexto_(r[2]),
+    rol: normalizarTexto_(r[3]), accion: normalizarTexto_(r[4]), modulo: normalizarTexto_(r[5]),
+    detalle: normalizarTexto_(r[6]), equipo: normalizarTexto_(r[7])
+  }));
+  return respuesta({ error: false, registros: registros });
+}
+
+function registrarAuditoria_(sesion, accion, modulo, detalle, equipo) {
+  if (!sesion) return;
+  try {
+    const hoja = obtenerHojaAuditoria_();
+    hoja.appendRow([new Date(), sesion.usuario || '', sesion.nombre || '', sesion.rol || '', accion || '', modulo || '', detalle || '', limpiarEquipo_(equipo || sesion.equipo || '')]);
+  } catch (e) { console.error('Auditoría:', e); }
+}
+
+function obtenerHojaAuditoria_() {
+  const ss = SpreadsheetApp.openById(ID_SHEET);
+  let hoja = ss.getSheetByName(HOJA_AUDITORIA);
+  if (!hoja) hoja = ss.insertSheet(HOJA_AUDITORIA);
+  const headers = ['FECHA','USUARIO','NOMBRE','ROL','ACCION','MODULO','DETALLE','EQUIPO'];
+  if (hoja.getLastRow() === 0) hoja.getRange(1,1,1,headers.length).setValues([headers]);
+  else {
+    const current = hoja.getRange(1,1,1,Math.max(hoja.getLastColumn(),headers.length)).getValues()[0];
+    headers.forEach((h,i)=>{ if (normalizarClave_(current[i]) !== h) hoja.getRange(1,i+1).setValue(h); });
+  }
+  hoja.getRange(1,1,1,headers.length).setFontWeight('bold');
+  return hoja;
 }
 
 function obtenerDatosSeguro(nombreHoja, token) {
