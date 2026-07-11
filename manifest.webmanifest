@@ -1,7 +1,7 @@
 {
-  "name": "CIO AVA - Centro de Inteligencia Operativa AVA",
-  "short_name": "CIO AVA",
-  "description": "Centro de Inteligencia Operativa AVA para recuperación, incidencias y tendencias.",
+  "name": "CIO AVA Enterprise 2.0 — Centro de Inteligencia Operativa AVA",
+  "short_name": "CIO AVA 2.0",
+  "description": "Plataforma modular de inteligencia operativa AVA para la Gerencia Regional de Recaudación VHT.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -10,7 +10,17 @@
   "theme_color": "#6d28d9",
   "lang": "es-MX",
   "icons": [
-    {"src":"assets/pwa/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
-    {"src":"assets/pwa/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+    {
+      "src": "assets/pwa/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/pwa/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
   ]
 }

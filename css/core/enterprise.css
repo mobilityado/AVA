@@ -1,0 +1,38 @@
+/* CIO AVA Enterprise 2.0: capa visual incremental, sin alterar la lógica existente. */
+:root {
+  --cio-enterprise-accent: #7c3aed;
+  --cio-enterprise-accent-2: #2563eb;
+  --cio-enterprise-success: #10b981;
+}
+.version-pill.enterprise {
+  background: linear-gradient(135deg, var(--cio-enterprise-accent), var(--cio-enterprise-accent-2));
+  color: #fff;
+  box-shadow: 0 10px 28px rgba(124,58,237,.22);
+}
+.enterprise-note {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  margin-top: .6rem;
+  padding: .35rem .65rem;
+  border: 1px solid color-mix(in srgb, var(--cio-enterprise-accent) 30%, transparent);
+  border-radius: 999px;
+  font-size: .76rem;
+  font-weight: 700;
+  color: var(--cio-enterprise-accent);
+  background: color-mix(in srgb, var(--cio-enterprise-accent) 7%, transparent);
+}
+.architecture-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+.architecture-grid article {
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(124,58,237,.16);
+  background: rgba(124,58,237,.045);
+}
+.architecture-grid b { display:block; margin-bottom:4px; }
+.architecture-grid small { opacity:.72; line-height:1.4; }
