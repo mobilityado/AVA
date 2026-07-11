@@ -1,12 +1,30 @@
-# CIO AVA v48 — Fuentes sin duplicidad
+# CIO AVA Enterprise 2.5
 
-Esta versión corrige la lógica de recuperación:
+Versión basada en la rama estable v48 (sin duplicidad de cobros).
 
-- **AVATRT y AVASUR** son la fuente única para total cobrado, recuperación general, pendientes, tendencias, comparativos y reportes operativos.
-- **TRT y SUR** se usan exclusivamente para identificar qué cajero realizó la recuperación y construir el ranking de cajeros.
-- Los importes de TRT/SUR no se vuelven a sumar al total general porque ya están incluidos en las hojas AVA.
-- El módulo y Top de Cajeros conservan sus datos y reconocimientos sin alterar las cifras ejecutivas.
+## Novedades
+
+- CIO Copilot 2.5 con análisis local de los datos cargados.
+- Pronóstico estadístico mediante regresión lineal simple.
+- Alertas inteligentes por adeudo, concentración de Honestidad y caída de recuperación.
+- Consultas en lenguaje natural con el motor local del portal.
+- Notificaciones del navegador.
+- Envío de resumen ejecutivo por correo para administradores.
+- PDF corporativo desde el módulo Copilot.
+
+## Importante sobre la IA
+
+El análisis se realiza dentro del navegador con reglas estadísticas y de negocio. No se envían datos operativos a servicios externos de IA. Esto protege la información y evita costos de API.
 
 ## Instalación
 
-No requiere modificar `Code.gs`. Reemplaza los archivos del proyecto en GitHub, conserva todas las carpetas y actualiza con Ctrl + F5. Si está instalada como PWA, cierra y vuelve a abrir la aplicación o borra la caché del sitio.
+1. Reemplaza el Apps Script con `Code.gs`.
+2. Publica una **Nueva versión** de la implementación web.
+3. Sube todos los archivos del ZIP a la raíz de GitHub Pages.
+4. Abre en incógnito o elimina el Service Worker anterior y usa Ctrl+F5.
+5. La primera vez que se envíe un correo, Apps Script puede solicitar autorización para MailApp.
+
+## Fuentes de datos
+
+- AVATRT y AVASUR: indicadores generales, recuperación, tendencias, rutas, reportes y análisis.
+- TRT y SUR: únicamente ranking y detalle de cajeros.

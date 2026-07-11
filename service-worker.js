@@ -1,4 +1,4 @@
-const CACHE='cio-ava-v48-sin-duplicidad';
+const CACHE='cio-ava-enterprise-2-5';
 const CORE=['./','./index.html','./css/styles.css','./js/app.js','./js/admin-users.js','./js/audit.js','./manifest.webmanifest','./assets/cio-ava-logo.svg','./assets/favicon.svg','./assets/pwa/icon-192.png','./assets/pwa/icon-512.png'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));

@@ -23,7 +23,7 @@ function doGet(e) {
   const p = e.parameter || {};
   const accion = String(p.accion || 'inicio').toLowerCase();
   try {
-    if (accion === 'inicio') return respuesta({ error: false, mensaje: 'API CIO AVA v46 activa', autenticacion: true, administracionUsuarios: true });
+    if (accion === 'inicio') return respuesta({ error: false, mensaje: 'API CIO AVA Enterprise 2.5 activa', autenticacion: true, administracionUsuarios: true });
     if (accion === 'usuarios') return listarUsuarios();
     if (accion === 'sesion') return validarSesionPublica(p.token);
     if (accion === 'datos') return obtenerDatosSeguro(p.hoja, p.token);
@@ -45,6 +45,7 @@ function doPost(e) {
     if (accion === 'admin_restaurar_contrasena') return restaurarContrasenaAdmin(body);
     if (accion === 'admin_cambiar_estado') return cambiarEstadoUsuarioAdmin(body);
     if (accion === 'auditoria') return registrarAuditoriaPublica(body);
+    if (accion === 'enviar_resumen_ia') return enviarResumenIA_(body);
     return respuesta({ error: true, mensaje: 'Acción POST inválida' });
   } catch (error) {
     return respuesta({ error: true, mensaje: error.message || String(error) });
@@ -198,6 +199,25 @@ function cambiarEstadoUsuarioAdmin(body) {
   if (!activo) cerrarSesionesDeUsuario_(usuario, null);
   registrarAuditoria_(sesion, 'CAMBIAR_ESTADO', 'ADMINISTRACION', (activo ? 'Activó' : 'Desactivó') + ' la cuenta ' + usuario, sesion.equipo || '');
   return respuesta({ error: false, mensaje: activo ? 'Usuario activado.' : 'Usuario desactivado.' });
+}
+
+
+
+function enviarResumenIA_(body) {
+  const sesion = exigirAdministrador_(body.token);
+  const email = normalizarTexto_(body.email);
+  const asunto = normalizarTexto_(body.asunto || 'CIO AVA - Resumen Ejecutivo');
+  const html = String(body.html || '');
+  if (!/^\S+@\S+\.\S+$/.test(email)) return respuesta({ error: true, mensaje: 'Correo no válido.' });
+  if (!html) return respuesta({ error: true, mensaje: 'El resumen está vacío.' });
+  MailApp.sendEmail({
+    to: email,
+    subject: asunto,
+    htmlBody: '<div style="font-family:Arial,sans-serif;line-height:1.55"><h2 style="color:#5b21b6">CIO AVA</h2><p><b>Centro de Inteligencia Operativa AVA</b></p><hr>' + html + '<hr><small>Gerencia Regional de Recaudación VHT · Mobility ADO</small></div>',
+    name: 'CIO AVA'
+  });
+  registrarAuditoria_(sesion, 'ENVIO_RESUMEN_IA', 'CIO_COPILOT', 'Envió resumen ejecutivo a ' + email, sesion.equipo || '');
+  return respuesta({ error: false, mensaje: 'Resumen enviado.' });
 }
 
 function registrarAuditoriaPublica(body) {

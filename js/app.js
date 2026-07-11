@@ -174,3 +174,67 @@ function setupHelpChat(){
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&panel.classList.contains('open'))close()});
 }
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',setupHelpChat,{once:true})}else{setupHelpChat()}
+
+
+/* =========================================================
+   CIO COPILOT 2.5 — análisis local, pronóstico y alertas
+   No envía datos a servicios externos.
+   ========================================================= */
+function copilotMonthlySeries(rows){
+  const inc=rows.filter(r=>r._clase==='INCIDENCIA'&&r._fecha);
+  const months=[...new Set(inc.map(r=>r._mes).filter(x=>/^20\d{2}-\d{2}$/.test(x)))].sort();
+  return months.map(m=>{
+    const monthRows=inc.filter(r=>r._mes===m),hon=monthRows.filter(r=>lc(r._rubro)==='honestidad'),paid=monthRows.filter(r=>lc(r._estatus)==='cobrado');
+    const generated=sum(hon),recovered=sum(paid),pct=generated?Math.min(100,recovered/generated*100):0;
+    return{month:m,generated,recovered,pct,count:monthRows.length};
+  });
+}
+function copilotLinearForecast(values){
+  const ys=values.map(Number).filter(Number.isFinite);if(!ys.length)return{forecast:0,confidence:0,slope:0};if(ys.length===1)return{forecast:ys[0],confidence:35,slope:0};
+  const n=ys.length,xMean=(n-1)/2,yMean=ys.reduce((a,b)=>a+b,0)/n;let nume=0,den=0;ys.forEach((y,x)=>{nume+=(x-xMean)*(y-yMean);den+=(x-xMean)**2});const slope=den?nume/den:0,intercept=yMean-slope*xMean,forecast=Math.max(0,intercept+slope*n);
+  const predicted=ys.map((_,x)=>intercept+slope*x),ssRes=ys.reduce((a,y,i)=>a+(y-predicted[i])**2,0),ssTot=ys.reduce((a,y)=>a+(y-yMean)**2,0),r2=ssTot?Math.max(0,1-ssRes/ssTot):.5;
+  return{forecast,confidence:Math.round(Math.max(35,Math.min(95,r2*100))),slope};
+}
+function copilotMetrics(){const rows=filtered.length?filtered:raw,m=recoveryMetrics(rows),months=copilotMonthlySeries(rows),forecast=copilotLinearForecast(months.map(x=>x.recovered));return{rows,m,months,forecast,hon:honesty(rows)}}
+function copilotBuildInsights(){
+  const {rows,m,months,forecast,hon}=copilotMetrics(),items=[];
+  if(!rows.length)return[{type:'warning',html:'No hay datos cargados para analizar.'}];
+  items.push({type:m.porcentaje>=95?'positive':m.porcentaje>=80?'warning':'critical',html:`La recuperación general es <b>${m.porcentaje.toFixed(2)}%</b>: ${money(m.totalRecuperado)} recuperados de ${money(m.generadoHonestidad)} generados en Honestidad.`});
+  if(months.length>=2){const a=months.at(-2),b=months.at(-1),delta=a.recovered?(b.recovered-a.recovered)/a.recovered*100:0;items.push({type:delta>=0?'positive':'warning',html:`La recuperación del último mes ${delta>=0?'aumentó':'disminuyó'} <b>${Math.abs(delta).toFixed(1)}%</b> frente al mes anterior (${money(b.recovered)} vs ${money(a.recovered)}).`})}
+  const topDriver=sorted(group(m.incidencias,'_conductor'),'count')[0],topRoute=sorted(group(hon,'_ruta'),'count')[0],topIssue=sorted(group(hon,'_anomalia'),'count')[0];
+  if(topDriver)items.push({type:'warning',html:`<b>${helpEscape(topDriver.key)}</b> concentra la mayor cantidad de incidencias generales: ${topDriver.count.toLocaleString('es-MX')}.`});
+  if(topRoute)items.push({type:'warning',html:`La ruta o lugar con más eventos de Honestidad es <b>${helpEscape(topRoute.key)}</b> con ${topRoute.count.toLocaleString('es-MX')} incidencias.`});
+  if(topIssue)items.push({type:'warning',html:`La incidencia de Honestidad más frecuente es <b>${helpEscape(topIssue.key)}</b> (${topIssue.count.toLocaleString('es-MX')} casos).`});
+  if(isAdmin()){const topCash=sorted(group(m.cobrosCajeros,'_cajero'))[0];if(topCash)items.push({type:'positive',html:`El cajero líder en recuperación es <b>${helpEscape(topCash.key)}</b> con ${money(topCash.total)}.`})}
+  items.push({type:'positive',html:`El pronóstico estadístico para el siguiente periodo es <b>${money(forecast.forecast)}</b>, con confianza estimada de ${forecast.confidence}%.`});
+  return items;
+}
+function copilotBuildAlerts(){
+  const {m,hon,months}=copilotMetrics(),alerts=[],drivers=sorted(group(m.incidencias.filter(r=>r._pendiente>0),'_conductor')).filter(x=>x.total>=cfg.umbral).slice(0,5);
+  drivers.forEach(x=>alerts.push({level:'high',icon:'⚠️',title:`Adeudo alto: ${x.key}`,detail:`Pendiente estimado de ${money(x.total)} (umbral ${money(cfg.umbral)}).`}));
+  const routes=sorted(group(hon,'_ruta'),'count').slice(0,3);routes.forEach(x=>{if(x.count>=Math.max(10,Math.round(hon.length*.05)))alerts.push({level:'medium',icon:'📍',title:`Concentración de Honestidad`,detail:`${x.key}: ${x.count} incidencias.`})});
+  if(months.length>=2&&months.at(-1).recovered<months.at(-2).recovered)alerts.push({level:'medium',icon:'📉',title:'Recuperación a la baja',detail:`El último mes quedó por debajo del anterior.`});
+  if(m.porcentaje>=95)alerts.push({level:'ok',icon:'✅',title:'Recuperación favorable',detail:`El indicador general se encuentra en ${m.porcentaje.toFixed(2)}%.`});
+  if(!alerts.length)alerts.push({level:'ok',icon:'✅',title:'Sin alertas críticas',detail:'No se detectaron condiciones relevantes con los filtros actuales.'});return alerts.slice(0,10);
+}
+function renderCopilot(){
+  const summary=$('#copilotExecutiveSummary'),alerts=$('#copilotAlerts');if(!summary||!alerts)return;
+  summary.innerHTML=copilotBuildInsights().map(x=>`<div class="copilot-insight ${x.type}">${x.html}</div>`).join('');
+  alerts.innerHTML=copilotBuildAlerts().map(x=>`<div class="smart-alert ${x.level}"><i>${x.icon}</i><div><b>${helpEscape(x.title)}</b><small>${helpEscape(x.detail)}</small></div></div>`).join('');
+  const {months,forecast}=copilotMetrics();$('#copilotForecastAmount').textContent=money(forecast.forecast);$('#copilotForecastLabel').textContent=forecast.slope>=0?'Tendencia proyectada al alza':'Tendencia proyectada a la baja';$('#copilotForecastConfidence').textContent=`Confianza estimada: ${forecast.confidence}%`;$('#copilotForecastBar').style.width=`${forecast.confidence}%`;
+  chart('copilotForecastChart','line',{labels:months.map(x=>x.month),datasets:[{label:'Recuperado',data:months.map(x=>x.recovered),borderColor:'#7c3aed',backgroundColor:'rgba(124,58,237,.16)',fill:true,tension:.35},{label:'Pronóstico',data:months.length?[...Array(Math.max(0,months.length-1)).fill(null),months.at(-1).recovered,forecast.forecast]:[],borderColor:'#0ea5e9',borderDash:[7,5],pointRadius:3,tension:.3}]},{plugins:{tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${money(c.raw)}`}}}});
+}
+function copilotExecutiveText(){const m=recoveryMetrics(filtered.length?filtered:raw),ins=copilotBuildInsights().map(x=>x.html.replace(/<[^>]+>/g,'')).join('\n• ');return `CIO AVA — Resumen Ejecutivo\n\n• ${ins}\n\nRecuperación general: ${m.porcentaje.toFixed(2)}%\nTotal recuperado: ${money(m.totalRecuperado)}\nGenerado en Honestidad: ${money(m.generadoHonestidad)}\nPendiente: ${money(m.pendiente)}`}
+async function copilotSendEmail(){
+  if(!isAdmin())return;const email=clean($('#copilotEmail').value),msg=$('#copilotEmailMessage');if(!/^\S+@\S+\.\S+$/.test(email)){msg.textContent='Ingresa un correo válido.';return}msg.textContent='Enviando…';
+  try{const html=copilotExecutiveText().replace(/\n/g,'<br>');const j=await apiPost({accion:'enviar_resumen_ia',token:session.token,email,asunto:'CIO AVA - Resumen Ejecutivo',html});if(j.error)throw new Error(j.mensaje||'No se pudo enviar');msg.textContent='Resumen enviado correctamente.';toast('Correo enviado')}catch(e){msg.textContent=e.message||'No se pudo enviar el correo.'}
+}
+async function copilotEnableNotifications(){
+  if(!('Notification'in window)){toast('Este navegador no admite notificaciones');return}const permission=await Notification.requestPermission();if(permission!=='granted'){toast('Permiso de notificaciones no concedido');return}const alerts=copilotBuildAlerts().filter(x=>x.level==='high');new Notification('CIO AVA',{body:alerts.length?`${alerts.length} alerta(s) crítica(s) detectada(s).`:'No hay alertas críticas.',icon:'assets/pwa/icon-192.png'});toast('Notificaciones activadas')
+}
+function setupCopilot(){
+  on('#copilotAnalyzeBtn','click',()=>{renderCopilot();toast('Análisis actualizado')});on('#copilotPdfBtn','click',exportPDF);on('#copilotEmailBtn','click',copilotSendEmail);on('#copilotNotifyBtn','click',copilotEnableNotifications);
+  on('#copilotQuestionForm','submit',e=>{e.preventDefault();const q=clean($('#copilotQuestion').value);$('#copilotAnswer').innerHTML=q?helpAnswer(q):'Escribe una pregunta para analizar.'});
+  document.addEventListener('cioava:data-rendered',renderCopilot);
+}
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',setupCopilot,{once:true})}else{setupCopilot()}
