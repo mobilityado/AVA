@@ -1,37 +1,12 @@
-# CIO AVA Enterprise 2.0
+# CIO AVA v48 — Fuentes sin duplicidad
 
-Centro de Inteligencia Operativa AVA para la **Gerencia Regional de Recaudación VHT — Mobility ADO**.
+Esta versión corrige la lógica de recuperación:
 
-## Lógica oficial de datos
+- **AVATRT y AVASUR** son la fuente única para total cobrado, recuperación general, pendientes, tendencias, comparativos y reportes operativos.
+- **TRT y SUR** se usan exclusivamente para identificar qué cajero realizó la recuperación y construir el ranking de cajeros.
+- Los importes de TRT/SUR no se vuelven a sumar al total general porque ya están incluidos en las hojas AVA.
+- El módulo y Top de Cajeros conservan sus datos y reconocimientos sin alterar las cifras ejecutivas.
 
-- `AVATRT` y `AVASUR` alimentan todos los indicadores ejecutivos, porcentajes, tendencias, comparativos y reportes generales.
-- `TRT` y `SUR` se usan exclusivamente para el ranking y detalle de recuperación de cajeros.
-- Esta separación evita duplicar importes ya reflejados en las hojas AVA.
+## Instalación
 
-## Estructura
-
-```text
-CIO-AVA/
-├── assets/                 Logo, iconos y recursos PWA
-├── css/
-│   ├── styles.css          Estilos funcionales estables
-│   ├── enterprise.css      Punto de entrada visual
-│   └── core/               Capa Enterprise
-├── js/
-│   ├── core/               Configuración y runtime
-│   ├── modules/            Registro y diagnóstico modular
-│   ├── app.js              Motor principal estable
-│   ├── admin-users.js      Administración de usuarios
-│   └── audit.js            Auditoría
-├── docs/                   Arquitectura, instalación y cambios
-├── Code.gs                 Backend de Apps Script
-├── manifest.webmanifest    PWA
-├── service-worker.js       Caché de aplicación
-└── index.html
-```
-
-## Instalación rápida
-
-Sube todos los archivos a la raíz de GitHub Pages. Si ya usas el Apps Script de v47/v48 y funciona correctamente, no necesitas cambiarlo para esta edición. Limpia la caché de la PWA o abre con `Ctrl + F5`.
-
-Consulta `docs/INSTALACION.md` y `docs/ARQUITECTURA.md` para más detalles.
+No requiere modificar `Code.gs`. Reemplaza los archivos del proyecto en GitHub, conserva todas las carpetas y actualiza con Ctrl + F5. Si está instalada como PWA, cierra y vuelve a abrir la aplicación o borra la caché del sitio.
