@@ -1,7 +1,7 @@
 {
-  "name": "CIO AVA Enterprise 2.5",
-  "short_name": "CIO AVA 2.5",
-  "description": "Centro de Inteligencia Operativa AVA con Copilot analítico, pronósticos y alertas inteligentes.",
+  "name": "CIO AVA Enterprise 3.0",
+  "short_name": "CIO AVA 3.0",
+  "description": "Plataforma de inteligencia operativa con Executive Score, Copilot contextual, predicción y alertas.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
