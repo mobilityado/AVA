@@ -46,17 +46,16 @@
 <div class="nav-group"><span class="nav-group-title">Inicio</span>
 <button class="nav active" data-view="dashboard"><img class="nav-icon" src="assets/icons/dashboard.svg" alt=""> Resumen Ejecutivo</button></div>
 <div class="nav-group"><span class="nav-group-title">Inteligencia operativa</span>
-<button class="nav" data-view="rubros"><img class="nav-icon" src="assets/icons/rubros.svg" alt=""> Rubros</button>
-<button class="nav" data-view="honestidad"><img class="nav-icon" src="assets/icons/honestidad.svg" alt=""> Honestidad</button>
+<button class="nav" data-view="rubros"><img class="nav-icon" src="assets/icons/rubros.svg" alt=""> Gráficas Incidencias</button>
+<button class="nav" data-view="honestidad"><img class="nav-icon" src="assets/icons/honestidad.svg" alt=""> Resumen Honestidad</button>
 <button class="nav" data-view="tendencias"><img class="nav-icon" src="assets/icons/tendencias.svg" alt=""> Tendencias</button>
 <button class="nav" data-view="insights"><img class="nav-icon" src="assets/icons/insights.svg" alt=""> Resumen Inteligente</button>
-<button class="nav" data-view="decision"><img class="nav-icon" src="assets/icons/insights.svg" alt=""> Decision Intelligence</button>
 <button class="nav" data-view="assistant"><img class="nav-icon" src="assets/icons/insights.svg" alt=""> CIO Copilot 3.0</button></div>
 <div class="nav-group"><span class="nav-group-title">Recuperación</span>
-<button class="nav" data-view="conductores"><img class="nav-icon" src="assets/icons/conductores.svg" alt=""> Conductores</button>
-<button class="nav" data-view="cajeros" data-admin-only><img class="nav-icon" src="assets/icons/cajeros.svg" alt=""> Cajeros</button></div>
+<button class="nav" data-view="conductores"><img class="nav-icon" src="assets/icons/conductores.svg" alt=""> Top Conductores</button>
+<button class="nav" data-view="cajeros" data-admin-only><img class="nav-icon" src="assets/icons/cajeros.svg" alt=""> Top Cajeros</button></div>
 <div class="nav-group"><span class="nav-group-title">Operación</span>
-<button class="nav" data-view="rutas"><img class="nav-icon" src="assets/icons/rutas.svg" alt=""> Rutas</button>
+<button class="nav" data-view="rutas"><img class="nav-icon" src="assets/icons/rutas.svg" alt=""> Rutas con mayor incidencia</button>
 <button class="nav" data-view="reportes"><img class="nav-icon" src="assets/icons/reportes.svg" alt=""> Reportes</button></div>
 <div class="nav-group" data-admin-only><span class="nav-group-title">Administración</span>
 <button class="nav" data-view="usuarios" data-admin-only><img class="nav-icon" src="assets/icons/conductores.svg" alt=""> Usuarios</button>
@@ -70,15 +69,14 @@
   <div class="home-hero"><div><span class="home-kicker">CENTRO DE INTELIGENCIA OPERATIVA</span><h2>¿Qué deseas consultar?</h2><p>Selecciona una opción para entrar a cada módulo de CIO AVA.</p></div><img src="assets/cio-ava-logo.svg" alt="CIO AVA"></div>
   <div class="menu-tiles">
     <button class="menu-tile tile-purple" data-view="dashboard"><span class="tile-icon">▦</span><strong>Resumen Ejecutivo</strong><small>Indicadores y panorama general</small><span class="tile-arrow">↗</span></button>
-    <button class="menu-tile tile-blue" data-view="rubros"><span class="tile-icon">◈</span><strong>Rubros</strong><small>Distribución de incidencias</small><span class="tile-arrow">↗</span></button>
-    <button class="menu-tile tile-pink" data-view="honestidad"><span class="tile-icon">✓</span><strong>Honestidad</strong><small>Incidencias y recuperación</small><span class="tile-arrow">↗</span></button>
+    <button class="menu-tile tile-blue" data-view="rubros"><span class="tile-icon">◈</span><strong>Gráficas Incidencias</strong><small>Distribución y comportamiento de incidencias</small><span class="tile-arrow">↗</span></button>
+    <button class="menu-tile tile-pink" data-view="honestidad"><span class="tile-icon">✓</span><strong>Resumen Honestidad</strong><small>Indicadores, incidencias y recuperación</small><span class="tile-arrow">↗</span></button>
     <button class="menu-tile tile-cyan" data-view="tendencias"><span class="tile-icon">⌁</span><strong>Tendencias</strong><small>Comparativos mensuales y anuales</small><span class="tile-arrow">↗</span></button>
     <button class="menu-tile tile-green" data-view="insights"><span class="tile-icon">✧</span><strong>Resumen Inteligente</strong><small>Hallazgos principales</small><span class="tile-arrow">↗</span></button>
-    <button class="menu-tile tile-indigo" data-view="decision"><span class="tile-icon">◎</span><strong>Decision Intelligence</strong><small>Riesgos y recomendaciones</small><span class="tile-arrow">↗</span></button>
     <button class="menu-tile tile-violet" data-view="assistant"><span class="tile-icon">✳</span><strong>CIO Copilot 3.0</strong><small>Análisis y consultas guiadas</small><span class="tile-arrow">↗</span></button>
-    <button class="menu-tile tile-orange" data-view="conductores"><span class="tile-icon">♙</span><strong>Conductores</strong><small>Incidencias por conductor</small><span class="tile-arrow">↗</span></button>
-    <button class="menu-tile tile-teal" data-view="cajeros" data-admin-only><span class="tile-icon">＄</span><strong>Cajeros</strong><small>Recuperación por cajero</small><span class="tile-arrow">↗</span></button>
-    <button class="menu-tile tile-blue" data-view="rutas"><span class="tile-icon">⌖</span><strong>Rutas</strong><small>Análisis origen y destino</small><span class="tile-arrow">↗</span></button>
+    <button class="menu-tile tile-orange" data-view="conductores"><span class="tile-icon">♙</span><strong>Top Conductores</strong><small>Ranking de conductores con más incidencias</small><span class="tile-arrow">↗</span></button>
+    <button class="menu-tile tile-teal" data-view="cajeros" data-admin-only><span class="tile-icon">＄</span><strong>Top Cajeros</strong><small>Ranking de recuperación por cajero</small><span class="tile-arrow">↗</span></button>
+    <button class="menu-tile tile-blue" data-view="rutas"><span class="tile-icon">⌖</span><strong>Rutas con mayor incidencia</strong><small>Trayectos con más incidencias registradas</small><span class="tile-arrow">↗</span></button>
     <button class="menu-tile tile-purple" data-view="reportes"><span class="tile-icon">▤</span><strong>Reportes</strong><small>Exportación de información</small><span class="tile-arrow">↗</span></button>
     <button class="menu-tile tile-indigo" data-view="usuarios" data-admin-only><span class="tile-icon">♧</span><strong>Usuarios</strong><small>Cuentas y permisos</small><span class="tile-arrow">↗</span></button>
     <button class="menu-tile tile-pink" data-view="auditoria" data-admin-only><span class="tile-icon">◷</span><strong>Auditoría</strong><small>Actividad del sistema</small><span class="tile-arrow">↗</span></button>
