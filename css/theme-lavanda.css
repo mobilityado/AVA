@@ -1,0 +1,14 @@
+/* CIO AVA — tema ejecutivo claro con acentos morados */
+:root{--bg:#f5f6fc;--panel:#ffffff;--card:#ffffff;--card2:#faf9ff;--text:#20204a;--muted:#6f7295;--line:#e5e3f5;--purple:#6041d8;--violet:#8b5cf6;--pink:#b28af8;--green:#159b78;--red:#d9485f;--amber:#d58a20;--blue:#477be8;--cyan:#2b9eb3;--shadow:0 8px 28px rgba(66,49,130,.08)}
+body{background:radial-gradient(circle at 80% 0%,rgba(139,92,246,.09),transparent 30%),var(--bg);color:var(--text)}
+.sidebar{background:linear-gradient(180deg,#fff 0%,#f5f3ff 100%);border-right:1px solid #e7e2fa;color:#38345e;box-shadow:4px 0 24px rgba(72,54,135,.04)}
+.brand{border-bottom-color:#e9e4f8}.brand-name,.brand strong{color:#282454}.nav-item,.menu-item{color:#555477}.nav-item:hover,.menu-item:hover{background:#eee9ff;color:#4f35bf}.nav-item.active,.menu-item.active{background:linear-gradient(110deg,#6041d8,#8b5cf6);color:#fff;box-shadow:0 5px 14px rgba(96,65,216,.18)}
+.topbar,.top-bar,header{border-color:var(--line)}
+.panel,.card,.stat-card,.metric-card,.report-card,.module-card,.dashboard-card{background:var(--card);border-color:var(--line);box-shadow:var(--shadow)}
+input,select,textarea{background:#fff!important;color:var(--text)!important;border-color:#dcd7f2!important}input::placeholder,textarea::placeholder{color:#9693b5!important}
+button,.btn-primary,.primary-btn{background:linear-gradient(110deg,#5940cd,#8659ed);border-color:transparent;color:#fff}
+button:hover,.btn-primary:hover,.primary-btn:hover{filter:brightness(1.04);box-shadow:0 5px 14px rgba(96,65,216,.17)}
+a{color:#6245d7}.badge,.pill{border-color:#e5defc}
+.site-footer{border-color:var(--line);color:var(--muted)}
+/* Mantener estados legibles sobre el fondo claro */
+.status,.status-badge{font-weight:600}
