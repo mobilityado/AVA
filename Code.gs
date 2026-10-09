@@ -29,6 +29,7 @@ function doGet(e) {
     if (accion === 'datos') return obtenerDatosSeguro(p.hoja, p.token);
     if (accion === 'admin_usuarios') return listarUsuariosAdmin(p.token);
     if (accion === 'admin_auditoria') return listarAuditoriaAdmin(p.token, p.limite);
+    if (accion === 'admin_periodo') return consultarPeriodoAdmin(p.token, p.mes, p.anio);
     return respuesta({ error: true, mensaje: 'Acción inválida' });
   } catch (error) {
     return respuesta({ error: true, mensaje: error.message || String(error) });
@@ -44,6 +45,7 @@ function doPost(e) {
     if (accion === 'admin_crear_usuario') return crearUsuarioAdmin(body);
     if (accion === 'admin_restaurar_contrasena') return restaurarContrasenaAdmin(body);
     if (accion === 'admin_cambiar_estado') return cambiarEstadoUsuarioAdmin(body);
+    if (accion === 'admin_cargar_mes') return cargarMesAdmin(body);
     if (accion === 'auditoria') return registrarAuditoriaPublica(body);
     if (accion === 'enviar_resumen_ia') return enviarResumenIA_(body);
     return respuesta({ error: true, mensaje: 'Acción POST inválida' });
@@ -389,6 +391,82 @@ function obtenerSesion_(token) {
     if (!sesion.expira || Date.now() > sesion.expira) { props.deleteProperty(clave); return null; }
     return sesion;
   } catch (_) { props.deleteProperty(clave); return null; }
+}
+
+
+/** Consulta segura para advertir si el periodo ya tiene una carga. */
+function consultarPeriodoAdmin(token, mes, anio) {
+  try {
+    exigirAdministrador_(token);
+    var periodo = validarPeriodoCarga_(mes, anio);
+    var ss = SpreadsheetApp.openById(ID_SHEET);
+    var nombres = nombresHojasPeriodo_(periodo.mes, periodo.anio);
+    var existentes = nombres.filter(function(n) { return !!ss.getSheetByName(n); });
+    return respuesta({ error: false, existe: existentes.length > 0, hojas: existentes, periodo: periodo.etiqueta });
+  } catch (e) { return respuesta({ error: true, mensaje: e.message || String(e) }); }
+}
+
+/** Recibe filas ya leídas del XLSX en navegador. La autorización se valida siempre en servidor. */
+function cargarMesAdmin(body) {
+  var lock = LockService.getScriptLock();
+  try {
+    var sesion = exigirAdministrador_(body.token);
+    var periodo = validarPeriodoCarga_(body.mes, body.anio);
+    var archivos = body.archivos || {};
+    var mapa = [
+      { archivo: 'CAJEROS TRT', hoja: 'TRT' },
+      { archivo: 'CAJEROS SUR', hoja: 'SUR' },
+      { archivo: 'TRT', hoja: 'AVATRT' },
+      { archivo: 'SUR', hoja: 'AVASUR' }
+    ];
+    mapa.forEach(function(m) {
+      var filas = archivos[m.archivo];
+      if (!Array.isArray(filas) || filas.length < 2) throw new Error('El archivo ' + m.archivo + ' está vacío o no tiene encabezados y registros.');
+      if (filas.length > 50000) throw new Error('El archivo ' + m.archivo + ' supera el límite de 50,000 filas.');
+      if (!Array.isArray(filas[0]) || !filas[0].some(function(v){ return String(v || '').trim(); })) throw new Error('No se detectaron encabezados válidos en ' + m.archivo + '.');
+    });
+    lock.waitLock(30000);
+    var ss = SpreadsheetApp.openById(ID_SHEET);
+    var nombres = nombresHojasPeriodo_(periodo.mes, periodo.anio);
+    var existe = nombres.some(function(n){ return !!ss.getSheetByName(n); });
+    if (existe && body.confirmarReemplazo !== true) return respuesta({ error: true, requiereConfirmacion: true, mensaje: 'Ya existe información para ' + periodo.etiqueta + '. Confirma el reemplazo.' });
+    // Construir primero el contenido validado; después sustituir las cuatro pestañas del periodo.
+    mapa.forEach(function(m, idx) {
+      var filas = archivos[m.archivo].map(function(row){ return row.map(function(v){ return v === undefined || v === null ? '' : v; }); });
+      var ancho = filas.reduce(function(max, row){ return Math.max(max, row.length); }, 1);
+      filas = filas.map(function(row){ while (row.length < ancho) row.push(''); return row; });
+      var nombrePeriodo = nombres[idx];
+      var hojaMes = ss.getSheetByName(nombrePeriodo);
+      if (!hojaMes) hojaMes = ss.insertSheet(nombrePeriodo);
+      hojaMes.clearContents();
+      hojaMes.getRange(1, 1, filas.length, filas[0].length).setValues(filas);
+      hojaMes.setFrozenRows(1);
+      hojaMes.getRange(1,1,1,filas[0].length).setFontWeight('bold');
+      // Mantiene las cuatro pestañas operativas actuales alimentadas con el último periodo cargado,
+      // de modo que el resto de AVA conserve compatibilidad con su lógica existente.
+      var hojaActual = ss.getSheetByName(m.hoja);
+      if (!hojaActual) hojaActual = ss.insertSheet(m.hoja);
+      hojaActual.clearContents();
+      hojaActual.getRange(1, 1, filas.length, filas[0].length).setValues(filas);
+      hojaActual.setFrozenRows(1);
+      hojaActual.getRange(1,1,1,filas[0].length).setFontWeight('bold');
+    });
+    registrarAuditoria_(sesion, existe ? 'REEMPLAZAR_CARGA_MENSUAL' : 'CARGA_MENSUAL', 'CARGA DE DATOS', (existe ? 'Reemplazó' : 'Cargó') + ' ' + periodo.etiqueta + ' (' + mapa.map(function(m){return m.archivo;}).join(', ') + ')', sesion.equipo || '');
+    return respuesta({ error: false, mensaje: 'Carga de ' + periodo.etiqueta + ' completada correctamente.', periodo: periodo.etiqueta, hojas: nombres });
+  } catch (e) { return respuesta({ error: true, mensaje: e.message || String(e) }); }
+  finally { try { lock.releaseLock(); } catch (_) {} }
+}
+
+function validarPeriodoCarga_(mes, anio) {
+  var m = Number(mes), y = Number(anio);
+  if (!Number.isInteger(m) || m < 1 || m > 12) throw new Error('Selecciona un mes válido.');
+  if (!Number.isInteger(y) || y < 2020 || y > 2100) throw new Error('Selecciona un año válido.');
+  var meses = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+  return { mes: m, anio: y, nombreMes: meses[m-1], etiqueta: meses[m-1] + ' ' + y };
+}
+function nombresHojasPeriodo_(mes, anio) {
+  var p = validarPeriodoCarga_(mes, anio);
+  return ['TRT','SUR','AVATRT','AVASUR'].map(function(base){ return base + ' ' + p.nombreMes + ' ' + p.anio; });
 }
 
 function ocultarCajeros_(obj) {
