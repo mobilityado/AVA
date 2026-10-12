@@ -6,7 +6,41 @@ function hideSplash(){if(typeof window.forceCloseAvaSplash==='function'){window.
 function on(sel,event,fn){const el=$(sel);if(el)el.addEventListener(event,fn)}
 const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s),money=n=>(+n||0).toLocaleString('es-MX',{style:'currency',currency:'MXN'}),clean=s=>String(s??'').trim(),lc=s=>clean(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''),num=n=>Number(String(n??'').replace(/[$,%\s,]/g,''))||0;
 const pick=(o,ks)=>{const m={};Object.keys(o||{}).forEach(k=>m[lc(k)]=o[k]);for(const k of ks){let v=m[lc(k)];if(v!==undefined&&v!==null&&clean(v)!=='')return v}return''};
-function parseDate(v){if(!v)return null;if(v instanceof Date)return v;const s=clean(v);let d=new Date(s);if(!isNaN(d)&&d.getFullYear()>2020&&d.getFullYear()<2036)return d;let m=s.match(/(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})/);if(m){let y=+m[3];if(y<100)y+=2000;d=new Date(y,+m[2]-1,+m[1]);if(y>2020&&y<2036)return d}return null}
+function parseDate(v){
+  if(v===null||v===undefined||v==='')return null;
+  if(v instanceof Date)return Number.isNaN(v.getTime())?null:new Date(v.getFullYear(),v.getMonth(),v.getDate());
+  const s=clean(v);
+  // Google Sheets puede entregar la fecha como número de serie.
+  if(/^\d+(?:\.\d+)?$/.test(s)){
+    const n=Number(s);
+    if(n>20000&&n<80000){
+      const days=Math.floor(n);
+      const utc=new Date(Date.UTC(1899,11,30)+days*86400000);
+      return new Date(utc.getUTCFullYear(),utc.getUTCMonth(),utc.getUTCDate());
+    }
+  }
+  // ISO: yyyy-mm-dd o yyyy-mm-ddThh:mm:ss; se conserva el día calendario.
+  let m=s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[T\s].*)?$/);
+  if(m){
+    const y=+m[1],mo=+m[2],day=+m[3];
+    if(y>=2000&&y<=2035&&mo>=1&&mo<=12&&day>=1&&day<=31){
+      const d=new Date(y,mo-1,day);
+      if(d.getFullYear()===y&&d.getMonth()===mo-1&&d.getDate()===day)return d;
+    }
+  }
+  // Formato mexicano explícito: dd/mm/yyyy o dd-mm-yyyy.
+  m=s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})(?:\s.*)?$/);
+  if(m){
+    let day=+m[1],mo=+m[2],y=+m[3];if(y<100)y+=2000;
+    if(y>=2000&&y<=2035&&mo>=1&&mo<=12&&day>=1&&day<=31){
+      const d=new Date(y,mo-1,day);
+      if(d.getFullYear()===y&&d.getMonth()===mo-1&&d.getDate()===day)return d;
+    }
+  }
+  const d=new Date(s);
+  return !Number.isNaN(d.getTime())&&d.getFullYear()>=2000&&d.getFullYear()<=2035
+    ?new Date(d.getFullYear(),d.getMonth(),d.getDate()):null;
+}
 const route=r=>clean(pick(r,['Origen Destino Anomalía']))||[pick(r,['Origen']),pick(r,['Destino'])].filter(Boolean).join(' → ')||'SIN RUTA';
 function normalize(r,clase,empresa,hoja){const d=parseDate(pick(r,clase==='COBRO'?['Fecha Cobro','Fecha del Viaje']:['Fecha Corrida','Fecha Cobro','Fecha']));const rubro=clase==='INCIDENCIA'?(clean(pick(r,['Tipo','Rubro','Categoría']))||'SIN RUBRO'):'RECUPERACIÓN';const costo=clase==='INCIDENCIA'?num(pick(r,['Costo','Por Cobrar','Importe','Monto'])):num(pick(r,['Monto Recuperado','Monto','Importe']));const pendiente=clase==='INCIDENCIA'&&lc(pick(r,['Estatus']))!=='cobrado'?num(pick(r,['Por Cobrar','Costo','Importe'])):0;return{...r,_clase:clase,_empresa:empresa,_hoja:hoja,_fecha:d,_mes:d?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`:'SIN FECHA',_anio:d?String(d.getFullYear()):'SIN FECHA',_rubro:rubro,_monto:costo,_pendiente:pendiente,_estatus:clean(pick(r,['Estatus','Status','Estado']))||'SIN ESTATUS',_conductor:clean(pick(r,['Conductor','Nombre Conductor','Operador']))||'SIN CONDUCTOR',_preceptor:clean(pick(r,['Preceptor','Nombre Preceptor']))||'',_cajero:clean(pick(r,['Nombre Cajero','Cajero']))||'SIN CAJERO',_autobus:clean(pick(r,['Autobus','Autobús','Unidad']))||'',_folio:clean(pick(r,['Folio Recibo','Reporte','Viaje','Id Viaje']))||'',_anomalia:clean(pick(r,['Anomalía','Anomalia']))||'SIN ANOMALÍA',_ruta:route(r)}}
 async function apiGet(accion,params={}){const q=new URLSearchParams({accion,...params,_:Date.now()});const res=await fetch(`${API}?${q.toString()}`,{cache:'no-store'});const j=await res.json();if(j.codigo==='SESION_INVALIDA'||j.codigo==='NO_AUTORIZADO'){await endSession(false);throw new Error('La sesión terminó. Inicia sesión nuevamente.')}return j}
@@ -53,7 +87,24 @@ async function loadData(){
 }
 function setSync(t,ok,err){$('#syncText').textContent=t;$('.sync').className='sync '+(ok?'ok':err?'err':'')}
 function populateFilters(){for(const[id,key]of[['#fRubro','_rubro'],['#fPreceptor','_preceptor'],['#fEstatus','_estatus']]){const s=$(id),cur=s.value,vals=[...new Set(raw.filter(r=>id==='#fRubro'?r._clase==='INCIDENCIA':true).map(r=>r[key]).filter(Boolean))].sort();s.innerHTML=`<option value="TODOS">Todos</option>`+vals.map(v=>`<option>${v}</option>`).join('');s.value=vals.includes(cur)?cur:'TODOS'}}
-function applyFilters(){const emp=$('#fEmpresa').value,rub=$('#fRubro').value,prec=$('#fPreceptor')?.value||'TODOS',est=$('#fEstatus').value,q=lc($('#fSearch').value),de=$('#fDesde').value?new Date($('#fDesde').value+'T00:00:00'):null,ha=$('#fHasta').value?new Date($('#fHasta').value+'T23:59:59'):null;filtered=raw.filter(r=>(emp==='TODAS'||r._empresa===emp)&&(rub==='TODOS'||r._rubro===rub)&&(prec==='TODOS'||r._preceptor===prec)&&(est==='TODOS'||r._estatus===est)&&(!de||r._fecha>=de)&&(!ha||r._fecha<=ha)&&(!q||lc([r._conductor,...(isAdmin()?[r._cajero]:[]),r._autobus,r._folio,r._anomalia,r._ruta,r._rubro,r._preceptor].join(' ')).includes(q)));renderAll()}
+function applyFilters(){
+  const emp=$('#fEmpresa').value,rub=$('#fRubro').value,prec=$('#fPreceptor')?.value||'TODOS',est=$('#fEstatus').value,q=lc($('#fSearch').value);
+  const desde=$('#fDesde').value||'',hasta=$('#fHasta').value||'';
+  // Comparar YYYY-MM-DD evita problemas de horas y zonas horarias.
+  const dayKey=d=>d instanceof Date&&!Number.isNaN(d.getTime())?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`:'';
+  filtered=raw.filter(r=>{
+    const fecha=dayKey(r._fecha);
+    if(emp!=='TODAS'&&r._empresa!==emp)return false;
+    if(rub!=='TODOS'&&r._rubro!==rub)return false;
+    if(prec!=='TODOS'&&r._preceptor!==prec)return false;
+    if(est!=='TODOS'&&r._estatus!==est)return false;
+    if(desde&&(!fecha||fecha<desde))return false;
+    if(hasta&&(!fecha||fecha>hasta))return false;
+    if(q&&!lc([r._conductor,...(isAdmin()?[r._cajero]:[]),r._autobus,r._folio,r._anomalia,r._ruta,r._rubro,r._preceptor].join(' ')).includes(q))return false;
+    return true;
+  });
+  renderAll();
+}
 const sum=(a,k='_monto')=>a.reduce((s,r)=>s+(+r[k]||0),0);function group(a,key,value='_monto'){const m={};a.forEach(r=>{const k=typeof key==='function'?key(r):r[key];if(!m[k])m[k]={key:k,total:0,count:0,rows:[]};m[k].total+=+r[value]||0;m[k].count++;m[k].rows.push(r)});return Object.values(m)}
 const sorted=(a,mode='total')=>[...a].sort((x,y)=>y[mode]-x[mode]);const honesty=a=>a.filter(r=>r._clase==='INCIDENCIA'&&lc(r._rubro)==='honestidad');
 function recoveryMetrics(rows=filtered){
