@@ -276,20 +276,30 @@ function obtenerDatosSeguro(nombreHoja, token) {
   if (HOJAS_DATOS.indexOf(nombreHoja) === -1) return respuesta({ error: true, codigo: 'HOJA_NO_PERMITIDA', mensaje: 'La hoja solicitada no está permitida.' });
 
   const ss = SpreadsheetApp.openById(ID_SHEET);
-  const hoja = ss.getSheetByName(nombreHoja);
-  if (!hoja) return respuesta({ error: true, mensaje: 'No existe la hoja: ' + nombreHoja });
-  const valores = hoja.getDataRange().getValues();
-  if (valores.length < 2) return respuesta({ error: false, hoja: nombreHoja, rol: sesion.rol, datos: [] });
-  const encabezados = valores[0].map(h => normalizarTexto_(h));
+  // Las cargas mensuales se guardan como "TRT ENERO 2026", "AVATRT ENERO 2026", etc.
+  // Si existen pestañas mensuales para esta categoría, leerlas todas y NO sumar la pestaña
+  // operativa (TRT/SUR/AVATRT/AVASUR), porque esa pestaña contiene una copia del último mes.
+  const meses = 'ENERO|FEBRERO|MARZO|ABRIL|MAYO|JUNIO|JULIO|AGOSTO|SEPTIEMBRE|OCTUBRE|NOVIEMBRE|DICIEMBRE';
+  const patron = new RegExp('^' + nombreHoja.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ' (' + meses + ') (20\\d{2})$', 'i');
+  const hojasMensuales = ss.getSheets().filter(h => patron.test(h.getName()));
+  const hojaBase = ss.getSheetByName(nombreHoja);
+  const hojasLeer = hojasMensuales.length ? hojasMensuales : (hojaBase ? [hojaBase] : []);
+  if (!hojasLeer.length) return respuesta({ error: true, mensaje: 'No existe la hoja ni sus pestañas mensuales para: ' + nombreHoja });
+
   const datos = [];
-  for (let i = 1; i < valores.length; i++) {
-    const fila = valores[i];
-    if (fila.every(v => v === '' || v === null)) continue;
-    const obj = {};
-    encabezados.forEach((h, c) => { if (h) obj[h] = serializarValor_(fila[c]); });
-    datos.push(sesion.rol === 'ADMINISTRADOR' ? obj : ocultarCajeros_(obj));
-  }
-  return respuesta({ error: false, autorizado: true, hoja: nombreHoja, rol: sesion.rol, datos: datos });
+  hojasLeer.forEach(function(hoja) {
+    const valores = hoja.getDataRange().getValues();
+    if (valores.length < 2) return;
+    const encabezados = valores[0].map(h => normalizarTexto_(h));
+    for (let i = 1; i < valores.length; i++) {
+      const fila = valores[i];
+      if (fila.every(v => v === '' || v === null)) continue;
+      const obj = {};
+      encabezados.forEach((h, c) => { if (h) obj[h] = serializarValor_(fila[c]); });
+      datos.push(sesion.rol === 'ADMINISTRADOR' ? obj : ocultarCajeros_(obj));
+    }
+  });
+  return respuesta({ error: false, autorizado: true, hoja: nombreHoja, hojasLeidas: hojasLeer.map(h => h.getName()), rol: sesion.rol, datos: datos });
 }
 
 function obtenerHojaUsuarios_() {
